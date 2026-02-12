@@ -2,7 +2,7 @@ import os
 from glob import glob
 from setuptools import find_packages, setup
 
-package_name = 'g1_slam_bringup'
+package_name = 'g1_slam'
 
 setup(
     name=package_name,
