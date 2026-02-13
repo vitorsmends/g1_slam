@@ -104,6 +104,49 @@ ros2 launch g1_slam slam_localization.launch.py
 
 ------------------------------------------------------------------------
 
+## Docker Setup (Deployment on Unitree G1)
+
+This package can be deployed inside a Docker container running on the Unitree G1 robot.  
+The container is configured to communicate with external ROS 2 nodes using DDS.
+
+### Build the Docker image
+
+From the root of the repository:
+
+```bash
+./build.sh
+```
+
+This will build the image `g1_slam:humble` using ROS 2 Humble and install all required dependencies via rosdep.
+
+### Run the container on the robot
+
+```bash
+./run.sh
+```
+
+The container is started with host networking and IPC enabled to allow ROS 2 DDS discovery and topic exchange with processes running outside Docker.
+
+### DDS communication requirements
+
+- The container must be started with:
+  - `--net=host`
+  - `--ipc=host`
+- The `ROS_DOMAIN_ID` inside the container must match the one used by the robot.
+- The RMW implementation is set to CycloneDDS for better network stability.
+
+### Verification
+
+Inside the container, verify that external topics are visible:
+
+```bash
+ros2 topic list
+ros2 topic echo /scan
+ros2 topic echo /dog_odom
+```
+
+------------------------------------------------------------------------
+
 ## Sensors and Estimation Pipeline
 
 ### Odometry Estimation (EKF)
