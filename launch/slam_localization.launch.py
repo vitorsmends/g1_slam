@@ -1,20 +1,31 @@
 import os
 from ament_index_python.packages import get_package_share_directory
+
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration
+
 from launch_ros.actions import Node
 
+
 def generate_launch_description():
-    # Definição de caminhos
     pkg_share = get_package_share_directory('g1_slam')
     
-    # Arquivos de configuração
     map_yaml_file = '/home/mendes/Documents/mapa_g1_final.yaml'
     ekf_config_path = os.path.join(pkg_share, 'config', 'ekf.yaml')
     slam_config_path = os.path.join(pkg_share, 'config', 'localization_params.yaml')
     rviz_config_path = os.path.join(pkg_share, 'rviz', 'localization.rviz')
-    
+
+    use_rviz = LaunchConfiguration('use_rviz')
+
     return LaunchDescription([
-        # 1. Map Server - O dono do tópico /map
+        DeclareLaunchArgument(
+            'use_rviz',
+            default_value='false',
+            description='Whether to launch RViz2'
+        ),
+
         Node(
             package='nav2_map_server',
             executable='map_server',
@@ -26,7 +37,6 @@ def generate_launch_description():
             }]
         ),
 
-        # 2. Lifecycle Manager - Ativa o Map Server
         Node(
             package='nav2_lifecycle_manager',
             executable='lifecycle_manager',
@@ -39,7 +49,6 @@ def generate_launch_description():
             }]
         ),
 
-        # 3. EKF - Fusão de Sensores
         Node(
             package='robot_localization',
             executable='ekf_node',
@@ -51,16 +60,18 @@ def generate_launch_description():
             ]
         ),
 
-        # 4. TF Estática PELVIS to LIVOX_FRAME
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
             name='static_pelvis_livox',
-            arguments=['--x', '0', '--y', '0', '--z', '0', '--yaw', '0', '--pitch', '0', '--roll', '0', '--frame-id', 'pelvis', '--child-frame-id', 'livox_frame'],
+            arguments=[
+                '--x', '0', '--y', '0', '--z', '0',
+                '--yaw', '0', '--pitch', '0', '--roll', '0',
+                '--frame-id', 'pelvis', '--child-frame-id', 'livox_frame'
+            ],
             parameters=[{'use_sim_time': True}]
         ),
 
-        # 5. PointCloud to LaserScan
         Node(
             package='pointcloud_to_laserscan',
             executable='pointcloud_to_laserscan_node',
@@ -77,7 +88,6 @@ def generate_launch_description():
             }]
         ),
 
-        # 6. SLAM Toolbox (Localização Pura)
         Node(
             package='slam_toolbox',
             executable='async_slam_toolbox_node',
@@ -89,13 +99,13 @@ def generate_launch_description():
             ]
         ),
 
-        # 7. RViz2 - Interface Visual
         Node(
             package='rviz2',
             executable='rviz2',
             name='rviz2',
             output='screen',
             arguments=['-d', rviz_config_path],
-            parameters=[{'use_sim_time': True}]
+            parameters=[{'use_sim_time': True}],
+            condition=IfCondition(use_rviz)
         )
     ])
