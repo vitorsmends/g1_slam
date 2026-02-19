@@ -29,11 +29,18 @@ def generate_launch_description():
                 ('scan', '/scan')
             ],
             parameters=[{
-                # Frame intermediário do pointcloud (deve existir na TF)
-                'target_frame': 'livox_frame',  # ajuste conforme seu URDF/TF estática
-                'min_height': -0.1,
-                'max_height': 0.1,
-                'use_sim_time': use_sim_time
+                'target_frame': 'livox_frame',
+                'transform_tolerance': 0.01,
+                'min_height': -1.0,
+                'max_height': 1.0,
+                'angle_min': -3.1415,
+                'angle_max': 3.1415,
+                'angle_increment': 0.0087,
+                'scan_time': 0.1,
+                'range_min': 0.3,
+                'range_max': 50.0,
+                'use_sim_time': True,
+                'reliability': 'best_effort'
             }]
         ),
 
