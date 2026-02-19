@@ -1,32 +1,37 @@
 # g1_slam
 
-ROS 2 package providing SLAM and localization bringup for the Unitree G1
-robot, including mapping, localization, and state estimation (EKF).
+ROS 2 package providing a minimal SLAM bringup pipeline for the Unitree G1 robot.  
+The package currently contains a single custom node for TF and topic remapping, and a launch file that composes the SLAM pipeline using external packages.
 
-------------------------------------------------------------------------
+The scope of this repository is intentionally minimal and focused on:
+- Correcting TF (odom → base_link) for the G1
+- Remapping odometry and LaserScan topics
+- Integrating LiDAR projection to 2D and SLAM Toolbox for online mapping
+
+---
 
 ## Requirements
 
--   ROS 2 Humble
--   slam_toolbox
--   robot_localization
--   RViz2
--   TF2
+- ROS 2 Humble
+- slam_toolbox
+- pointcloud_to_laserscan
+- tf2_ros
+- RViz2
 
-Install dependencies via rosdep (recommended):
+Install dependencies via rosdep:
 
-``` bash
+```bash
 sudo rosdep init || true
 rosdep update
 ```
 
-------------------------------------------------------------------------
+---
 
 ## Workspace Setup
 
 Create a ROS 2 workspace and add this package:
 
-``` bash
+```bash
 mkdir -p ~/g1_ws/src
 cd ~/g1_ws/src
 git clone <REPOSITORY_URL>/g1_slam.git
@@ -36,206 +41,120 @@ colcon build
 source install/setup.bash
 ```
 
-------------------------------------------------------------------------
+---
 
-## Launch Files
+## Launch
 
-### 1) slam_simple.launch.py --- Online SLAM (Mapping)
+This repository provides a single launch file that brings up the full online SLAM pipeline.
 
-**Purpose:**\
-Runs online SLAM to build a map using slam_toolbox in mapping mode.
+### Pipeline
 
-**Pipeline behavior:** - slam_toolbox runs in mapping mode - Consumes
-LaserScan from LiDAR - Uses TF odom → base_link (pelvis) - Publishes
-/map and TF map → odom
+1. LiDAR PointCloud → LaserScan  
+   The LiDAR point cloud is projected into a 2D LaserScan using `pointcloud_to_laserscan`.
 
-**Configuration:** - config/mapper_params.yaml - mode: mapping -
-scan_topic: /scan - base_frame: pelvis - odom_frame: odom - map_frame:
-map - Loop closing enabled (do_loop_closing: true) - Map resolution:
-0.05 m
+2. TF and topic remapping (custom node)  
+   The `g1_slam/remap` node:
+   - Subscribes to kinematic odometry (`/dog_odom`)
+   - Publishes corrected odometry
+   - Republishes LaserScan on a fixed topic
+   - Publishes TF odom → base_link using the kinematic odometry
 
-**Run:**
+3. Static TF (base_link → lidar_link)  
+   A static transform publisher provides the LiDAR extrinsics.
 
-``` bash
-ros2 launch g1_slam slam_simple.launch.py
-```
+4. Online SLAM (slam_toolbox)  
+   `slam_toolbox` runs in async mapping mode using the corrected LaserScan and TF chain.
 
-**Expected outputs:** - /map - /tf (map → odom) - /slam_toolbox/\*
-
-------------------------------------------------------------------------
-
-### 2) slam_localization.launch.py --- Localization on a Prebuilt Map
-
-**Purpose:**\
-Runs localization on an existing map using slam_toolbox in localization
-mode and sensor fusion with EKF (robot_localization).
-
-**Pipeline behavior:** 1. EKF (robot_localization) estimates odom →
-base_link (pelvis) 2. slam_toolbox (localization) estimates map → odom
-using LiDAR 3. The full TF chain is closed: map → odom → pelvis
-
-**Configurations:** - config/localization_params.yaml (slam_toolbox --
-localization) - mode: localization - scan_topic: /scan - base_frame:
-pelvis - odom_frame: odom - map_frame: map - Loop closing disabled
-(do_loop_closing: false)
-
--   config/ekf.yaml (robot_localization -- EKF)
-
-    **Odometry sensors:**
-
-    -   /dog_odom
-    -   /dog_imu_raw
-
-    **Frames:**
-
-    -   map_frame: map
-    -   odom_frame: odom
-    -   base_link_frame: pelvis
-    -   world_frame: odom
-
-**Run:**
-
-``` bash
-ros2 launch g1_slam slam_localization.launch.py
-```
-
-**Expected outputs:** - /map - /tf (map → odom, odom → pelvis) -
-/odometry/filtered - /slam_toolbox/\*
-
-------------------------------------------------------------------------
-
-## Docker Setup (Deployment on Unitree G1)
-
-This package can be deployed inside a Docker container running on the Unitree G1 robot.  
-The container is configured to communicate with external ROS 2 nodes using DDS.
-
-### Build the Docker image
-
-From the root of the repository:
+### Run
 
 ```bash
-./build.sh
+ros2 launch g1_slam online_slam.launch.py
 ```
 
-This will build the image `g1_slam:humble` using ROS 2 Humble and install all required dependencies via rosdep.
+---
 
-### Run the container on the robot
+## Configuration
 
-```bash
-./run.sh
+All parameters used by the pipeline are provided via YAML configuration files:
+
+- `config/pointcloud_to_laserscan.yaml`  
+  Parameters for LiDAR point cloud projection to LaserScan.
+
+- `config/remap.yaml`  
+  Parameters for the custom remap node:
+  - input odometry topic
+  - input scan topic
+  - output odometry topic
+  - output scan topic
+  - frame names
+  - TF publishing behavior
+
+- `config/mapper_params_online_async.yaml`  
+  Official SLAM Toolbox configuration used for online mapping.
+
+No other launch files or configuration files are part of this repository.
+
+---
+
+## Topics and Frames
+
+### Topics
+
+| Type   | Topic           | Description                                |
+|--------|------------------|--------------------------------------------|
+| Input  | /livox/lidar     | LiDAR point cloud                          |
+| Input  | /dog_odom        | Kinematic odometry from the robot          |
+| Output | /scan            | Raw LaserScan from pointcloud_to_laserscan |
+| Output | /scan_fixed      | Remapped LaserScan used by SLAM            |
+| Output | /dog_odom_fixed  | Corrected odometry used for TF             |
+| Output | /map             | Occupancy grid map from slam_toolbox       |
+
+### TF Tree
+
+The expected TF chain during operation is:
+
+```
+map → odom → base_link → lidar_link
 ```
 
-The container is started with host networking and IPC enabled to allow ROS 2 DDS discovery and topic exchange with processes running outside Docker.
+---
 
-### DDS communication requirements
-
-- The container must be started with:
-  - `--net=host`
-  - `--ipc=host`
-- The `ROS_DOMAIN_ID` inside the container must match the one used by the robot.
-- The RMW implementation is set to CycloneDDS for better network stability.
-
-### Verification
-
-Inside the container, verify that external topics are visible:
+## Visualization
 
 ```bash
+rviz2
+```
+
+Recommended displays:
+- TF
+- Map
+- LaserScan (/scan_fixed)
+- Robot model (base_link)
+
+---
+
+## Verification
+
+```bash
+ros2 node list
 ros2 topic list
-ros2 topic echo /scan
-ros2 topic echo /dog_odom
+ros2 node info /slam_toolbox
+ros2 topic echo /scan_fixed
+ros2 topic echo /map
 ```
 
-------------------------------------------------------------------------
+---
 
-## Sensors and Estimation Pipeline
+## Known Limitations
 
-### Odometry Estimation (EKF)
+- Localization on a prebuilt map is not provided in this repository.
+- Sensor fusion (EKF) is intentionally not part of this package.
+- Navigation and path planning are out of scope.
+- The static TF between base_link and lidar_link must be manually calibrated.
 
-**Inputs:**
-
-  Sensor           Topic          Usage
-  ---------------- -------------- -----------------------------
-  Robot odometry   /dog_odom      Planar pose and orientation
-  IMU              /dog_imu_raw   Yaw and angular velocity
-
-**Node:** - robot_localization (EKF)
-
-**Outputs:** - TF: odom → pelvis - /odometry/filtered
-
-------------------------------------------------------------------------
-
-### Mapping and Localization (SLAM Toolbox)
-
-**Inputs:**
-
-  Sensor   Topic   Usage
-  -------- ------- ------------------------
-  LiDAR    /scan   Scan matching for SLAM
-
-**Node:** - slam_toolbox
-
-**Modes:** - Mapping: builds the map (slam_simple.launch.py) -
-Localization: localizes on a prebuilt map (slam_localization.launch.py)
-
-------------------------------------------------------------------------
-
-## Visualization (RViz)
-
-Use the provided RViz configuration:
-
-``` bash
-rviz2 -d config/localization.rviz
-```
-
-Includes: - Map - TF - LiDAR scans - Estimated pose
-
-------------------------------------------------------------------------
-
-## Testing
-
-``` bash
-colcon test
-```
-
-------------------------------------------------------------------------
-
-## Important Notes
-
--   Robot base frame: pelvis
-
--   SLAM consumes LaserScan on /scan
-
--   EKF consumes only /dog_odom and /dog_imu_raw
-
--   The map is published on /map
-
--   Expected TF chain:
-
-        map → odom → pelvis
-
-------------------------------------------------------------------------
-
-## Recommended Next Steps
-
--   Document map saving and loading (slam_toolbox save_map)
--   Add a launch file for localization with a loaded map
--   Add rosbag recording instructions
--   Add mandatory topic checks
-
-------------------------------------------------------------------------
-
-## License
-
-TBD
-
-------------------------------------------------------------------------
-
-## Contributing
-
-TBD
-
-------------------------------------------------------------------------
+---
 
 ## Status
 
-Under active development.
+Active development.  
+The current implementation is focused on stabilizing TF and SLAM integration on the Unitree G1 for 2D navigation use cases.
