@@ -68,7 +68,7 @@ This repository provides a single launch file that brings up the full online SLA
 ### Run
 
 ```bash
-ros2 launch g1_slam online_slam.launch.py
+ros2 launch g1_slam slam.launch.py
 ```
 
 ---
