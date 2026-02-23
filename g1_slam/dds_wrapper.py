@@ -26,7 +26,7 @@ class SportModeStateToOdom(Node):
         self.pub = self.create_publisher(Odometry, "/dog_odom", 10)
 
         # DDS init + subscriber
-        ChannelFactoryInitialize(0)  # domain_id=0 (ajuste se necessário)
+        ChannelFactoryInitialize(1)  # domain_id=0 (ajuste se necessário)
         self.sub = ChannelSubscriber("rt/sportmodestate", SportModeState_)
         self.sub.Init(self._dds_cb)
 
