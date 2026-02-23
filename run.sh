@@ -10,4 +10,5 @@ docker run -it --rm \
   --net=host \
   --ipc=host \
   -e ROS_DOMAIN_ID=${ROS_DOMAIN_ID} \
-  ${IMAGE_NAME}
+  ${IMAGE_NAME} \
+  bash -lc "source /opt/ros/humble/setup.bash && ros2 run g1_slam dds_wrapper"
