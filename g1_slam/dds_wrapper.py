@@ -26,7 +26,7 @@ class SportModeStateToOdom(Node):
         self.pub = self.create_publisher(Odometry, "/dog_odom", 10)
 
         # DDS init + subscriber
-        ChannelFactoryInitialize(1)  # domain_id=0 (ajuste se necessário)
+        ChannelFactoryInitialize(1)
         self.sub = ChannelSubscriber("rt/sportmodestate", SportModeState_)
         self.sub.Init(self._dds_cb)
 
@@ -46,7 +46,6 @@ class SportModeStateToOdom(Node):
         odom.pose.pose.position.z = float(msg.position[2])
 
         # Orientation from IMU quaternion
-        # OBS: a ordem pode ser [w,x,y,z] ou [x,y,z,w] — confirme no teste.
         q = msg.imu_state.quaternion
         odom.pose.pose.orientation = Quaternion(
             w=float(q[0]),
