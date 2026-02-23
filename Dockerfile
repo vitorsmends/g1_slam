@@ -40,11 +40,13 @@ WORKDIR /opt/ws/src
 COPY . ./g1_slam
 
 WORKDIR /opt/ws
-RUN rosdep init || true && \
+RUN (rosdep init 2>/dev/null || true) && \
     rosdep update && \
+    apt-get update && \
     rosdep install --from-paths src --ignore-src -r -y && \
     . /opt/ros/humble/setup.sh && \
-    colcon build --symlink-install
+    colcon build --symlink-install && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc && \
     echo "source /opt/ws/install/setup.bash" >> /root/.bashrc
