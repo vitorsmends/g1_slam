@@ -28,6 +28,7 @@ setup(
         'console_scripts': [
             'odom_to_tf = g1_slam.odom_to_tf:main',
             'remap = g1_slam.remap:main',
+            'dds_wrapper = g1_slam.dds_wrapper:main',
         ],
     },
 )
