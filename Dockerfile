@@ -1,4 +1,4 @@
-FROM ros:humble-ros-core
+FROM ros:humble
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ROS_DISTRO=humble
