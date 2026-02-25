@@ -1,41 +1,34 @@
 slam_toolbox:
   ros__parameters:
 
-    # Frames principais (ALINHADOS COM SUA TF)
-    odom_frame: odom
-    map_frame: map
-    base_frame: base_link
-    tracking_frame: base_link
-    scan_topic: /scan_fixed
+    odom_frame: odom_slam
+    map_frame: map_slam
+    base_frame: base_link_slam
+    tracking_frame: base_link_slam
+    scan_topic: /scan_slam
 
-    # Modo de operação
     mode: mapping
 
-    # Parâmetros de Tempo e Transformação
     transform_publish_period: 0.05
     transform_timeout: 1.0
     tf_buffer_duration: 30.0
     lookup_transform_timeout: 0.5
     
-    # Simulação (rosbag)
     use_sim_time: true
 
-    # Parâmetros do Mapa (qualidade > velocidade)
-    map_update_interval: 1.0          # publica mapa com boa frequência sem saturar
-    resolution: 0.05                  # 5 cm (bom compromisso para indoor)
+    map_update_interval: 1.0
+    resolution: 0.05
     max_laser_range: 20.0
     minimum_time_interval: 0.1
     stack_size_to_use: 40000000
 
-    # Scan Matching (mais rigor geométrico)
     use_scan_matching: true
     use_scan_barycenter: true
-    minimum_travel_distance: 0.05     # mais sensível a pequenos movimentos
-    minimum_travel_heading: 0.05      # mais sensível a pequenas rotações
-    scan_buffer_size: 15              # mais contexto para matching
+    minimum_travel_distance: 0.05
+    minimum_travel_heading: 0.05
+    scan_buffer_size: 15
     scan_buffer_maximum_scan_distance: 12.0
     
-    # Loop Closure (mais robusto, menos falso positivo)
     do_loop_closing: true
     loop_search_distance: 6.0
     loop_match_minimum_chain_size: 12
@@ -43,6 +36,5 @@ slam_toolbox:
     loop_match_minimum_response_coarse: 0.45
     loop_match_minimum_response_fine: 0.55
 
-    # Scan Matcher Fine (mais conservador)
     link_match_minimum_response_fine: 0.2
     link_scan_maximum_distance: 1.2

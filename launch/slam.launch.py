@@ -5,6 +5,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
+
 def generate_launch_description():
     pkg_share = get_package_share_directory('g1_slam')
 
@@ -26,7 +27,7 @@ def generate_launch_description():
                 ('cloud_in', '/livox/lidar'),
                 ('scan', '/scan')
             ],
-            parameters=[pc2ls_yaml],
+            parameters=[pc2ls_yaml, {'use_sim_time': use_sim_time}],
         ),
 
         Node(
@@ -34,17 +35,17 @@ def generate_launch_description():
             executable='remap',
             name='remap',
             output='screen',
-            parameters=[remap_yaml],
+            parameters=[remap_yaml, {'use_sim_time': use_sim_time}],
         ),
 
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
-            name='base_to_lidar_tf',
+            name='base_to_lidar_tf_slam',
             arguments=[
                 '0.0', '0.0', '0.0',
                 '0.0', '0.0', '0.0',
-                'base_link', 'lidar_link'
+                'base_link_slam', 'lidar_link_slam'
             ]
         ),
 
@@ -53,6 +54,6 @@ def generate_launch_description():
             executable='async_slam_toolbox_node',
             name='slam_toolbox',
             output='screen',
-            parameters=[slam_config_path]
+            parameters=[slam_config_path, {'use_sim_time': use_sim_time}]
         ),
     ])
