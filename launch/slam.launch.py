@@ -23,7 +23,7 @@ def generate_launch_description():
             name='pc_to_ls',
             output='screen',
             remappings=[
-                ('cloud_in', '/livox/lidar'),
+                ('cloud_in', '/utlidar/cloud_livox_mid360'),
                 ('scan', '/scan')
             ],
             parameters=[pc2ls_yaml],
