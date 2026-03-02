@@ -28,6 +28,7 @@ setup(
         'console_scripts': [
             'odom_to_tf = g1_slam.odom_to_tf:main',
             'remap = g1_slam.remap:main',
+            'pc2_to_scan = g1_slam.pc2_to_scan:main',
         ],
     },
 )
