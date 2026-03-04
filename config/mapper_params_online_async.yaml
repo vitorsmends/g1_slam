@@ -18,7 +18,7 @@ slam_toolbox:
     lookup_transform_timeout: 0.5
     
     # Simulação (rosbag)
-    use_sim_time: true
+    use_sim_time: false
 
     # Parâmetros do Mapa (qualidade > velocidade)
     map_update_interval: 1.0          # publica mapa com boa frequência sem saturar
