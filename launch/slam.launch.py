@@ -5,17 +5,23 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
+
 def generate_launch_description():
+
     pkg_share = get_package_share_directory('g1_slam')
 
-    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+    use_sim_time = LaunchConfiguration('use_sim_time')
 
     pc2ls_yaml = os.path.join(pkg_share, 'config', 'pointcloud_to_laserscan.yaml')
     remap_yaml = os.path.join(pkg_share, 'config', 'remap.yaml')
     slam_config_path = os.path.join(pkg_share, 'config', 'mapper_params_online_async.yaml')
 
     return LaunchDescription([
-        DeclareLaunchArgument('use_sim_time', default_value='true'),
+
+        DeclareLaunchArgument(
+            'use_sim_time',
+            default_value='false'
+        ),
 
         Node(
             package='pointcloud_to_laserscan',
@@ -26,7 +32,10 @@ def generate_launch_description():
                 ('cloud_in', '/livox/lidar'),
                 ('scan', '/scan')
             ],
-            parameters=[pc2ls_yaml],
+            parameters=[
+                pc2ls_yaml,
+                {'use_sim_time': use_sim_time}
+            ],
         ),
 
         Node(
@@ -34,7 +43,10 @@ def generate_launch_description():
             executable='remap',
             name='remap',
             output='screen',
-            parameters=[remap_yaml],
+            parameters=[
+                remap_yaml,
+                {'use_sim_time': use_sim_time}
+            ],
         ),
 
         Node(
@@ -42,8 +54,8 @@ def generate_launch_description():
             executable='static_transform_publisher',
             name='base_to_lidar_tf',
             arguments=[
-                '0.0', '0.0', '0.0',
-                '0.0', '0.0', '0.0',
+                '0', '0', '0',
+                '0', '0', '0',
                 'base_link', 'lidar_link'
             ]
         ),
@@ -53,6 +65,9 @@ def generate_launch_description():
             executable='async_slam_toolbox_node',
             name='slam_toolbox',
             output='screen',
-            parameters=[slam_config_path]
+            parameters=[
+                slam_config_path,
+                {'use_sim_time': use_sim_time}
+            ]
         ),
     ])
