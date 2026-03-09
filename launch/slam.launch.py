@@ -37,17 +37,6 @@ def generate_launch_description():
                 {'use_sim_time': use_sim_time}
             ],
         ),
-
-        Node(
-            package='g1_slam',
-            executable='remap',
-            name='remap',
-            output='screen',
-            parameters=[
-                remap_yaml,
-                {'use_sim_time': use_sim_time}
-            ],
-        ),
         
         Node(
             package='tf2_ros',

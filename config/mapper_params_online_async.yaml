@@ -4,8 +4,8 @@ slam_toolbox:
     map_frame: map
     base_frame: robot_center
     tracking_frame: robot_center
-    scan_topic: /scan_fixed
-    odom_topic: /dog_odom_fixed
+    scan_topic: /scan
+    odom_topic: /dog_odom
 
     mode: mapping
 
