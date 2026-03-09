@@ -6,6 +6,6 @@ remap:
     out_odom: /dog_odom_fixed
     out_scan: /scan_fixed
     odom_frame: odom
-    base_frame: base_link
-    lidar_frame: lidar_link
+    base_frame: robot_center
+    lidar_frame: livox_frame
     normalize_quaternion: true
