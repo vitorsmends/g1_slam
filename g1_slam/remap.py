@@ -76,8 +76,8 @@ class RemapAndFixTF(Node):
     def cb_odom(self, msg: Odometry):
         try:
             self.get_logger().info(
-                f"cb_odom received: stamp={msg.header.stamp.sec}.{msg.header.stamp.nanosec} "
-                f"frame_id={msg.header.frame_id} child={msg.child_frame_id}"
+                f"cb_odom called: stamp={msg.header.stamp.sec}.{msg.header.stamp.nanosec} "
+                f"frame={msg.header.frame_id} child={msg.child_frame_id}"
             )
 
             msg.header.frame_id = self.odom_frame
