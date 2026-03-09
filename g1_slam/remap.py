@@ -28,7 +28,7 @@ class RemapAndFixTF(Node):
         self.declare_parameter("in_scan", "/scan")
         self.declare_parameter("out_scan", "/scan_fixed")
         self.declare_parameter("odom_frame", "odom")
-        self.declare_parameter("base_frame", "base_link")
+        self.declare_parameter("base_frame", "robot_center")
         self.declare_parameter("lidar_frame", "lidar_link")
         self.declare_parameter("normalize_quaternion", True)
 

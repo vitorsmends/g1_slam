@@ -4,7 +4,7 @@ slam_toolbox:
 
     scan_topic: /scan_fixed
     odom_frame: odom
-    base_frame: base_link
+    base_frame: robot_center
 
     mode: mapping
     resolution: 0.05
