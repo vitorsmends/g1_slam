@@ -74,26 +74,37 @@ class RemapAndFixTF(Node):
         self.get_logger().info("RemapAndFixTF node started")
 
     def cb_odom(self, msg: Odometry):
-        msg.header.frame_id = self.odom_frame
-        msg.child_frame_id = self.base_frame
+        try:
+            self.get_logger().info(
+                f"cb_odom received: stamp={msg.header.stamp.sec}.{msg.header.stamp.nanosec} "
+                f"frame_id={msg.header.frame_id} child={msg.child_frame_id}"
+            )
 
-        if self.normalize_quaternion:
-            q = msg.pose.pose.orientation
-            x, y, z, w = quat_normalize((q.x, q.y, q.z, q.w))
-            q.x, q.y, q.z, q.w = x, y, z, w
+            msg.header.frame_id = self.odom_frame
+            msg.child_frame_id = self.base_frame
 
-        self.odom_pub.publish(msg)
+            if self.normalize_quaternion:
+                q = msg.pose.pose.orientation
+                x, y, z, w = quat_normalize((q.x, q.y, q.z, q.w))
+                q.x, q.y, q.z, q.w = x, y, z, w
 
-        tf = TransformStamped()
-        tf.header.stamp = msg.header.stamp
-        tf.header.frame_id = self.odom_frame
-        tf.child_frame_id = self.base_frame
-        tf.transform.translation.x = msg.pose.pose.position.x
-        tf.transform.translation.y = msg.pose.pose.position.y
-        tf.transform.translation.z = msg.pose.pose.position.z
-        tf.transform.rotation = msg.pose.pose.orientation
+            self.odom_pub.publish(msg)
+            self.get_logger().info("published /dog_odom_fixed")
 
-        self.tf_broadcaster.sendTransform(tf)
+            tf = TransformStamped()
+            tf.header.stamp = msg.header.stamp
+            tf.header.frame_id = self.odom_frame
+            tf.child_frame_id = self.base_frame
+            tf.transform.translation.x = msg.pose.pose.position.x
+            tf.transform.translation.y = msg.pose.pose.position.y
+            tf.transform.translation.z = msg.pose.pose.position.z
+            tf.transform.rotation = msg.pose.pose.orientation
+
+            self.tf_broadcaster.sendTransform(tf)
+            self.get_logger().info("published TF odom -> base_frame")
+
+        except Exception as e:
+            self.get_logger().error(f"cb_odom failed: {e}")
 
     def cb_scan(self, msg: LaserScan):
         msg.header.frame_id = self.lidar_frame
