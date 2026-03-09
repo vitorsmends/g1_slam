@@ -8,7 +8,6 @@ slam_toolbox:
     tracking_frame: base_link
     scan_topic: /scan_fixed
 
-    # Modo de operação
     mode: mapping
 
     # Parâmetros de Tempo e Transformação
