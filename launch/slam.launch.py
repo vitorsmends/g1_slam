@@ -60,7 +60,7 @@ def generate_launch_description():
                 '--roll', '0',
                 '--pitch', '0',
                 '--yaw', '0',
-                '--frame-id', 'base_link',
+                '--frame-id', 'robot_center',
                 '--child-frame-id', 'lidar_link'
             ]
         ),
