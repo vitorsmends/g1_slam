@@ -64,7 +64,7 @@ def generate_launch_description():
                 '--child-frame-id', 'lidar_link'
             ]
         ),
-        
+                
         Node(
             package='slam_toolbox',
             executable='async_slam_toolbox_node',
