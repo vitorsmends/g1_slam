@@ -50,12 +50,11 @@ class RemapAndFixTF(Node):
             depth=10,
         )
 
-        # QoS padrão confiável para odometria
         qos_odom = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.VOLATILE,
             history=HistoryPolicy.KEEP_LAST,
-            depth=50,
+            depth=1,
         )
 
         # Pub/Sub
