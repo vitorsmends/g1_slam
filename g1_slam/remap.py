@@ -8,7 +8,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster
-from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy, qos_profile_sensor_data
 
 
 def quat_normalize(q):
@@ -63,7 +63,7 @@ class RemapAndFixTF(Node):
             Odometry,
             self.in_odom,
             self.cb_odom,
-            qos_odom
+            qos_profile_sensor_data
         )
 
         self.odom_pub = self.create_publisher(
