@@ -8,7 +8,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster
-from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy, qos_profile_sensor_data
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
 
 
 def quat_normalize(q):
@@ -42,7 +42,6 @@ class RemapAndFixTF(Node):
         self.lidar_frame = self.get_parameter("lidar_frame").value
         self.normalize_quaternion = self.get_parameter("normalize_quaternion").value
 
-        # QoS compatível com sensores
         qos_sensor = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE,
@@ -50,25 +49,11 @@ class RemapAndFixTF(Node):
             depth=10,
         )
 
-        # QoS compatível com DDS do robô
-        qos_odom = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
-            durability=DurabilityPolicy.VOLATILE,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=1,
-        )
-
-        # Pub/Sub
+        # Subscriptions
         self.odom_sub = self.create_subscription(
             Odometry,
             self.in_odom,
             self.cb_odom,
-            10
-        )
-
-        self.odom_pub = self.create_publisher(
-            Odometry,
-            self.out_odom,
             10
         )
 
@@ -77,6 +62,13 @@ class RemapAndFixTF(Node):
             self.in_scan,
             self.cb_scan,
             qos_sensor
+        )
+
+        # Publishers
+        self.odom_pub = self.create_publisher(
+            Odometry,
+            self.out_odom,
+            10
         )
 
         self.scan_pub = self.create_publisher(
@@ -94,36 +86,52 @@ class RemapAndFixTF(Node):
 
     def cb_odom(self, msg: Odometry):
 
-        self.get_logger().info("ODOM RECEIVED")
+        # cria nova mensagem
+        odom = Odometry()
 
-        msg.header.stamp = self.now()
-        msg.header.frame_id = self.odom_frame
-        msg.child_frame_id = self.base_frame
+        odom.header.stamp = self.now()
+        odom.header.frame_id = self.odom_frame
+        odom.child_frame_id = self.base_frame
+
+        odom.pose = msg.pose
+        odom.twist = msg.twist
 
         if self.normalize_quaternion:
-            q = msg.pose.pose.orientation
+            q = odom.pose.pose.orientation
             x, y, z, w = quat_normalize((q.x, q.y, q.z, q.w))
             q.x, q.y, q.z, q.w = x, y, z, w
 
-        self.odom_pub.publish(msg)
+        self.odom_pub.publish(odom)
 
         tf = TransformStamped()
-        tf.header.stamp = msg.header.stamp
+        tf.header.stamp = odom.header.stamp
         tf.header.frame_id = self.odom_frame
         tf.child_frame_id = self.base_frame
-        tf.transform.translation.x = msg.pose.pose.position.x
-        tf.transform.translation.y = msg.pose.pose.position.y
-        tf.transform.translation.z = msg.pose.pose.position.z
-        tf.transform.rotation = msg.pose.pose.orientation
+        tf.transform.translation.x = odom.pose.pose.position.x
+        tf.transform.translation.y = odom.pose.pose.position.y
+        tf.transform.translation.z = odom.pose.pose.position.z
+        tf.transform.rotation = odom.pose.pose.orientation
 
         self.tf_broadcaster.sendTransform(tf)
 
     def cb_scan(self, msg: LaserScan):
 
-        msg.header.stamp = self.now()
-        msg.header.frame_id = self.lidar_frame
+        scan = LaserScan()
 
-        self.scan_pub.publish(msg)
+        scan.header.stamp = self.now()
+        scan.header.frame_id = self.lidar_frame
+
+        scan.angle_min = msg.angle_min
+        scan.angle_max = msg.angle_max
+        scan.angle_increment = msg.angle_increment
+        scan.time_increment = msg.time_increment
+        scan.scan_time = msg.scan_time
+        scan.range_min = msg.range_min
+        scan.range_max = msg.range_max
+        scan.ranges = msg.ranges
+        scan.intensities = msg.intensities
+
+        self.scan_pub.publish(scan)
 
 
 def main():
