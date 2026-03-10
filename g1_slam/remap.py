@@ -24,7 +24,7 @@ class RemapAndFixTF(Node):
         super().__init__("remap_and_fix_tf")
 
         # Params
-        self.declare_parameter("in_odom", "/dog_odom")   # corrigido (existente na bag)
+        self.declare_parameter("in_odom", "/dog_odom")
         self.declare_parameter("out_odom", "/dog_odom_fixed")
         self.declare_parameter("in_scan", "/scan")
         self.declare_parameter("out_scan", "/scan_fixed")
@@ -42,7 +42,7 @@ class RemapAndFixTF(Node):
         self.lidar_frame = self.get_parameter("lidar_frame").value
         self.normalize_quaternion = self.get_parameter("normalize_quaternion").value
 
-        # QoS compatível com sensores (BEST_EFFORT)
+        # QoS compatível com sensores
         qos_sensor = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE,
@@ -50,6 +50,7 @@ class RemapAndFixTF(Node):
             depth=10,
         )
 
+        # QoS compatível com DDS do robô
         qos_odom = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.VOLATILE,
@@ -58,36 +59,54 @@ class RemapAndFixTF(Node):
         )
 
         # Pub/Sub
-        self.odom_sub = self.create_subscription(Odometry, self.in_odom, self.cb_odom, qos_odom)
-        self.odom_pub = self.create_publisher(Odometry, self.out_odom, qos_odom)
+        self.odom_sub = self.create_subscription(
+            Odometry,
+            self.in_odom,
+            self.cb_odom,
+            qos_odom
+        )
 
-        self.scan_sub = self.create_subscription(LaserScan, self.in_scan, self.cb_scan, qos_sensor)
-        self.scan_pub = self.create_publisher(LaserScan, self.out_scan, qos_sensor)
+        self.odom_pub = self.create_publisher(
+            Odometry,
+            self.out_odom,
+            qos_odom
+        )
+
+        self.scan_sub = self.create_subscription(
+            LaserScan,
+            self.in_scan,
+            self.cb_scan,
+            qos_sensor
+        )
+
+        self.scan_pub = self.create_publisher(
+            LaserScan,
+            self.out_scan,
+            qos_sensor
+        )
 
         self.tf_broadcaster = TransformBroadcaster(self)
 
         self.get_logger().info("RemapAndFixTF node started")
 
     def now(self):
-        # Compatível com rosbag + use_sim_time
         return self.get_clock().now().to_msg()
 
     def cb_odom(self, msg: Odometry):
-        # Corrige header
+
+        self.get_logger().info("ODOM RECEIVED")
+
         msg.header.stamp = self.now()
         msg.header.frame_id = self.odom_frame
         msg.child_frame_id = self.base_frame
 
-        # Normaliza quaternion (opcional)
         if self.normalize_quaternion:
             q = msg.pose.pose.orientation
             x, y, z, w = quat_normalize((q.x, q.y, q.z, q.w))
             q.x, q.y, q.z, q.w = x, y, z, w
 
-        # Publica odom corrigido
         self.odom_pub.publish(msg)
 
-        # Publica TF odom -> base_link
         tf = TransformStamped()
         tf.header.stamp = msg.header.stamp
         tf.header.frame_id = self.odom_frame
@@ -100,7 +119,7 @@ class RemapAndFixTF(Node):
         self.tf_broadcaster.sendTransform(tf)
 
     def cb_scan(self, msg: LaserScan):
-        # Corrige header
+
         msg.header.stamp = self.now()
         msg.header.frame_id = self.lidar_frame
 
