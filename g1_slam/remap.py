@@ -63,7 +63,7 @@ class RemapAndFixTF(Node):
             Odometry,
             self.in_odom,
             self.cb_odom,
-            qos_profile_sensor_data
+            qos_odom
         )
 
         self.odom_pub = self.create_publisher(
