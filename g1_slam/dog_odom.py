@@ -2,18 +2,14 @@
 
 import rclpy
 from rclpy.node import Node
-
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import TransformStamped
-from tf2_ros import TransformBroadcaster
-
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
 
-class DogOdomRemap(Node):
+class TestRemap(Node):
 
     def __init__(self):
-        super().__init__("dog_odom_remap")
+        super().__init__("test_remap")
 
         qos = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
@@ -35,42 +31,24 @@ class DogOdomRemap(Node):
             qos
         )
 
-        self.tf = TransformBroadcaster(self)
+        self.counter = 0
 
-        self.get_logger().info("dog_odom remap started")
+        self.get_logger().info("Waiting for dog_odom...")
 
     def callback(self, msg):
 
-        odom = Odometry()
+        self.counter += 1
 
-        odom.header.stamp = self.get_clock().now().to_msg()
-        odom.header.frame_id = "odom"
-        odom.child_frame_id = "base_link"
+        print("RECEIVED ODOM:", self.counter)
 
-        odom.pose = msg.pose
-        odom.twist = msg.twist
-
-        self.pub.publish(odom)
-
-        tf = TransformStamped()
-
-        tf.header.stamp = odom.header.stamp
-        tf.header.frame_id = "odom"
-        tf.child_frame_id = "base_link"
-
-        tf.transform.translation.x = odom.pose.pose.position.x
-        tf.transform.translation.y = odom.pose.pose.position.y
-        tf.transform.translation.z = odom.pose.pose.position.z
-        tf.transform.rotation = odom.pose.pose.orientation
-
-        self.tf.sendTransform(tf)
+        self.pub.publish(msg)
 
 
 def main():
 
     rclpy.init()
 
-    node = DogOdomRemap()
+    node = TestRemap()
 
     rclpy.spin(node)
 
