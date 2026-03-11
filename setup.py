@@ -26,7 +26,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'odom_to_tf = g1_slam.odom_to_tf:main',
+            'dog_odom = g1_slam.dog_odom:main',
             'remap = g1_slam.remap:main',
         ],
     },

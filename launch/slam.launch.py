@@ -48,7 +48,7 @@ def generate_launch_description():
                 {'use_sim_time': use_sim_time}
             ],
         ),
-        
+
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
@@ -64,7 +64,23 @@ def generate_launch_description():
                 '--child-frame-id', 'lidar_link'
             ]
         ),
-        
+
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='odom_to_base_tf',
+            arguments=[
+                '--x', '0',
+                '--y', '0',
+                '--z', '0',
+                '--roll', '0',
+                '--pitch', '0',
+                '--yaw', '0',
+                '--frame-id', 'odom',
+                '--child-frame-id', 'base_link'
+            ]
+        ),
+
         Node(
             package='slam_toolbox',
             executable='async_slam_toolbox_node',
