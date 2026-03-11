@@ -2,80 +2,88 @@
 
 import rclpy
 import time
-from rclpy.node import Node
 
+from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster
 
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy, qos_profile_sensor_data
+from rclpy.qos import qos_profile_sensor_data
 
 
-class DogOdomRemap(Node):
+class DogOdomDebug(Node):
 
     def __init__(self):
-        super().__init__("dog_odom_remap")
+        super().__init__("dog_odom_debug")
 
-        # QoS variantes
-        qos_reliable = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
-            durability=DurabilityPolicy.VOLATILE,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=1
-        )
+        self.get_logger().info("NODE STARTED")
 
-        qos_best_effort = QoSProfile(
-            reliability=ReliabilityPolicy.BEST_EFFORT,
-            durability=DurabilityPolicy.VOLATILE,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=10
-        )
+        self.last_msg = None
+        self.last_rx_time = None
+        self.rx_counter = 0
+        self.pub_counter = 0
 
-        # Subscribers múltiplos
-        self.sub1 = self.create_subscription(
-            Odometry,
-            "/dog_odom",
-            self.callback,
-            qos_reliable
-        )
+        self.get_logger().info("CREATING SUBSCRIBER")
 
-        self.sub2 = self.create_subscription(
-            Odometry,
-            "/dog_odom",
-            self.callback,
-            qos_best_effort
-        )
-
-        self.sub3 = self.create_subscription(
+        self.sub = self.create_subscription(
             Odometry,
             "/dog_odom",
             self.callback,
             qos_profile_sensor_data
         )
 
-        # Publisher
+        self.get_logger().info("SUBSCRIBER CREATED")
+
+        self.get_logger().info("CREATING PUBLISHER")
+
         self.pub = self.create_publisher(
             Odometry,
             "/dog_odom_fixed",
             10
         )
 
+        self.get_logger().info("PUBLISHER CREATED")
+
         self.tf = TransformBroadcaster(self)
 
-        self.last_pub = 0.0
+        self.get_logger().info("CREATING TIMER")
 
-        self.get_logger().info("dog_odom remap started")
+        self.timer = self.create_timer(
+            0.02,   # 50 Hz
+            self.timer_callback
+        )
+
+        self.get_logger().info("TIMER STARTED (50Hz)")
 
     def callback(self, msg):
 
-        print("ODOM RECEIVED")
-
         now = time.time()
 
-        if now - self.last_pub < 0.02:
+        if self.last_rx_time is not None:
+            dt = now - self.last_rx_time
+            self.get_logger().info(f"DDS MESSAGE RECEIVED dt={dt:.6f}s")
+
+        else:
+            self.get_logger().info("FIRST DDS MESSAGE RECEIVED")
+
+        self.last_rx_time = now
+        self.last_msg = msg
+
+        self.rx_counter += 1
+
+        self.get_logger().info(f"TOTAL DDS MESSAGES: {self.rx_counter}")
+
+    def timer_callback(self):
+
+        if self.last_msg is None:
+
+            self.get_logger().warn(
+                "TIMER RUNNING BUT NO ODOM RECEIVED YET"
+            )
+
             return
 
-        self.last_pub = now
+        msg = self.last_msg
 
         odom = Odometry()
 
@@ -87,6 +95,12 @@ class DogOdomRemap(Node):
         odom.twist = msg.twist
 
         self.pub.publish(odom)
+
+        self.pub_counter += 1
+
+        self.get_logger().info(
+            f"PUBLISHED ODOM_FIXED #{self.pub_counter}"
+        )
 
         tf = TransformStamped()
 
@@ -102,14 +116,20 @@ class DogOdomRemap(Node):
 
         self.tf.sendTransform(tf)
 
+        self.get_logger().info("TF SENT odom → base_link")
+
 
 def main():
 
     rclpy.init()
 
-    node = DogOdomRemap()
+    node = DogOdomDebug()
 
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+
+    except KeyboardInterrupt:
+        pass
 
     node.destroy_node()
     rclpy.shutdown()
