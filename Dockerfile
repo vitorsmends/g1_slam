@@ -2,15 +2,16 @@ FROM ros:humble
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ROS_DISTRO=humble
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-humble-rmw-cyclonedds-cpp \
     python3-colcon-common-extensions \
     python3-rosdep \
     ros-humble-slam-toolbox \
     ros-humble-robot-localization \
     ros-humble-tf2-ros \
     ros-humble-pointcloud-to-laserscan \
-    \
     python3-pip \
     git \
     build-essential \
@@ -49,6 +50,7 @@ RUN (rosdep init 2>/dev/null || true) && \
     rm -rf /var/lib/apt/lists/*
 
 RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc && \
-    echo "source /opt/ws/install/setup.bash" >> /root/.bashrc
+    echo "source /opt/ws/install/setup.bash" >> /root/.bashrc && \
+    echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> /root/.bashrc
 
 CMD ["bash"]
