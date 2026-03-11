@@ -7,14 +7,13 @@ class DogOdomReader(Node):
     def __init__(self):
         super().__init__('dog_odom_simple_reader')
 
-        # Configurando o QoS exatamente para bater com o Publisher
-        # Reliability: RELIABLE (baseado no seu log)
-        # Durability: VOLATILE
+        # Perfil SensorData: Frequentemente resolve problemas onde o echo funciona mas o script não.
+        # Ele é mais tolerante a redes Wi-Fi e altas frequências.
         qos_profile = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
+            reliability=ReliabilityPolicy.BEST_EFFORT, # Tente mudar para RELIABLE se não funcionar
             durability=DurabilityPolicy.VOLATILE,
             history=HistoryPolicy.KEEP_LAST,
-            depth=10
+            depth=5
         )
 
         self.subscription = self.create_subscription(
@@ -23,18 +22,18 @@ class DogOdomReader(Node):
             self.listener_callback,
             qos_profile)
         
-        self.get_logger().info('Iniciando leitura do tópico /dog_odom...')
+        # Timer apenas para você saber que o nó não travou
+        self.timer = self.create_timer(2.0, self.timer_check)
+        self.get_logger().info('>>> Nó iniciado. Aguardando mensagens em /dog_odom...')
+
+    def timer_check(self):
+        self.get_logger().info('Aguardando dados... (Verifique se o robô está se movendo ou se o serviço de odom está ativo)')
 
     def listener_callback(self, msg):
-        # Extraindo informações básicas
-        pos = msg.pose.pose.position
-        ori = msg.pose.pose.orientation
-        
-        self.get_logger().info(
-            f'\n--- ODOMETRIA ---\n'
-            f'Posição: x={pos.x:.2f}, y={pos.y:.2f}, z={pos.z:.2f}\n'
-            f'Orientação (Quaternion): z={ori.z:.2f}, w={ori.w:.2f}'
-        )
+        # Se chegar aqui, a conexão foi bem sucedida!
+        x = msg.pose.pose.position.x
+        y = msg.pose.pose.position.y
+        self.get_logger().info(f'RECEBIDO - Pos X: {x:.3f}, Pos Y: {y:.3f}')
 
 def main(args=None):
     rclpy.init(args=args)
