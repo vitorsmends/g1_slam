@@ -3,6 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
+from rclpy.qos import qos_profile_sensor_data
 
 
 class TestRemap(Node):
@@ -14,7 +15,7 @@ class TestRemap(Node):
             Odometry,
             "/dog_odom",
             self.callback,
-            10
+            qos_profile_sensor_data
         )
 
         self.pub = self.create_publisher(
@@ -27,7 +28,7 @@ class TestRemap(Node):
 
     def callback(self, msg):
 
-        print("RECEIVED ODOM")
+        print("ODOM RECEIVED")
 
         self.pub.publish(msg)
 
