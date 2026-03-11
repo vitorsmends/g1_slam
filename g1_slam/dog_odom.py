@@ -24,7 +24,7 @@ class TestRemap(Node):
             10
         )
 
-        self.get_logger().info("Waiting for dog_odom...")
+        self.get_logger().info("Waiting for dog_odom...(2)")
 
     def callback(self, msg):
 
