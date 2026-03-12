@@ -10,5 +10,4 @@ pc_to_ls:
     scan_time: 0.1
     range_min: 0.3
     range_max: 50.0
-    use_sim_time: false
     reliability: best_effort

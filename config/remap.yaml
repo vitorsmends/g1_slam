@@ -1,6 +1,5 @@
 remap:
   ros__parameters:
-    use_sim_time: false
     in_odom: /dog_odom
     in_scan: /scan
     out_odom: /dog_odom_fixed
