@@ -5,13 +5,14 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-
 def generate_launch_description():
 
     pkg_share = get_package_share_directory('g1_slam')
 
+    # Configurações de tempo de simulação
     use_sim_time = LaunchConfiguration('use_sim_time')
 
+    # Caminhos dos arquivos de configuração
     pc2ls_yaml = os.path.join(pkg_share, 'config', 'pointcloud_to_laserscan.yaml')
     remap_yaml = os.path.join(pkg_share, 'config', 'remap.yaml')
     slam_config_path = os.path.join(pkg_share, 'config', 'mapper_params_online_async.yaml')
@@ -21,9 +22,11 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'use_sim_time',
             default_value='false',
-            description='Use simulation clock'
+            description='Use simulation clock (true if using bag, false if using real robot)'
         ),
 
+        # 1. Pointcloud to Laserscan
+        # Adicionada transform_tolerance para evitar rejeição de pacotes por micro-atrasos
         Node(
             package='pointcloud_to_laserscan',
             executable='pointcloud_to_laserscan_node',
@@ -35,10 +38,11 @@ def generate_launch_description():
             ],
             parameters=[
                 pc2ls_yaml,
-                {'use_sim_time': use_sim_time}
+                {'use_sim_time': use_sim_time, 'transform_tolerance': 0.05}
             ],
         ),
 
+        # 2. Seu nó de Remap e TF
         Node(
             package='g1_slam',
             executable='remap',
@@ -50,22 +54,22 @@ def generate_launch_description():
             ],
         ),
 
+        # 3. Transformada Estática (Base -> Lidar)
+        # IMPORTANTE: Adicionado o parâmetro use-sim-time via argumento para o static_transform_publisher
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
             name='base_to_lidar_tf',
             arguments=[
-                '--x','0',
-                '--y','0',
-                '--z','0',
-                '--roll','0',
-                '--pitch','0',
-                '--yaw','0',
-                '--frame-id','base_link',
-                '--child-frame-id','lidar_link'
-            ]
+                '--x', '0', '--y', '0', '--z', '0',
+                '--roll', '0', '--pitch', '0', '--yaw', '0',
+                '--frame-id', 'base_link',
+                '--child-frame-id', 'lidar_link'
+            ],
+            parameters=[{'use_sim_time': use_sim_time}]
         ),
 
+        # 4. SLAM Toolbox
         Node(
             package='slam_toolbox',
             executable='async_slam_toolbox_node',
