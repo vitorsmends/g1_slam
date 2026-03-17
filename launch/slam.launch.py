@@ -66,6 +66,23 @@ def generate_launch_description():
                 '--child-frame-id', 'lidar_link'
             ]
         ),
+
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='livox_tf',
+            arguments=[
+                '--x', '0',
+                '--y', '0',
+                '--z', '0',
+                '--roll', '0',
+                '--pitch', '0',
+                '--yaw', '0',
+                '--frame-id', 'base_link',
+                '--child-frame-id', 'livox_frame'
+            ]
+        ),
+        
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
