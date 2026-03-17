@@ -1,7 +1,7 @@
 pc_to_ls:
   ros__parameters:
     target_frame: livox_frame
-    transform_tolerance: 0.1
+    transform_tolerance: 0.05
     min_height: -1.0
     max_height: 1.0
     angle_min: -3.1415
