@@ -6,8 +6,6 @@ import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import TransformStamped
-from tf2_ros import TransformBroadcaster
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
 
 
@@ -19,9 +17,9 @@ def quat_normalize(q):
     return (x/n, y/n, z/n, w/n)
 
 
-class RemapAndFixTF(Node):
+class Remap(Node):
     def __init__(self):
-        super().__init__("remap_and_fix_tf")
+        super().__init__("remap")
 
         self.declare_parameter("in_odom", "/dog_odom")
         self.declare_parameter("out_odom", "/dog_odom_fixed")
@@ -74,18 +72,14 @@ class RemapAndFixTF(Node):
             qos_sensor
         )
 
-        self.tf_broadcaster = TransformBroadcaster(self)
-
-        self.get_logger().info("RemapAndFixTF node started")
-
-    def now(self):
-        return self.get_clock().now().to_msg()
+        self.get_logger().info("Remap node started (SAFE MODE)")
 
     def cb_odom(self, msg: Odometry):
 
         odom = Odometry()
 
-        odom.header.stamp = self.now()
+        odom.header.stamp = msg.header.stamp
+
         odom.header.frame_id = self.odom_frame
         odom.child_frame_id = self.base_frame
 
@@ -99,22 +93,12 @@ class RemapAndFixTF(Node):
 
         self.odom_pub.publish(odom)
 
-        tf = TransformStamped()
-        tf.header.stamp = odom.header.stamp
-        tf.header.frame_id = self.odom_frame
-        tf.child_frame_id = self.base_frame
-        tf.transform.translation.x = odom.pose.pose.position.x
-        tf.transform.translation.y = odom.pose.pose.position.y
-        tf.transform.translation.z = odom.pose.pose.position.z
-        tf.transform.rotation = odom.pose.pose.orientation
-
-        self.tf_broadcaster.sendTransform(tf)
-
     def cb_scan(self, msg: LaserScan):
 
         scan = LaserScan()
 
-        scan.header.stamp = self.now()
+        scan.header.stamp = msg.header.stamp
+
         scan.header.frame_id = self.lidar_frame
 
         scan.angle_min = msg.angle_min
@@ -132,7 +116,7 @@ class RemapAndFixTF(Node):
 
 def main():
     rclpy.init()
-    node = RemapAndFixTF()
+    node = Remap()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
