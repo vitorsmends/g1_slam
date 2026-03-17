@@ -1,14 +1,11 @@
-pc_to_ls:
+remap:
   ros__parameters:
-    target_frame: lidar_link
-    transform_tolerance: 0.05
-    min_height: -1.0
-    max_height: 1.0
-    angle_min: -3.1415
-    angle_max: 3.1415
-    angle_increment: 0.0087
-    scan_time: 0.1
-    range_min: 0.3
-    range_max: 50.0
     use_sim_time: false
-    reliability: best_effort
+    in_odom: /dog_odom
+    in_scan: /scan
+    out_odom: /dog_odom_fixed
+    out_scan: /scan_fixed
+    odom_frame: odom
+    base_frame: base_link
+    lidar_frame: livox_frame
+    normalize_quaternion: true
