@@ -23,6 +23,7 @@ def generate_launch_description():
             default_value='false'
         ),
 
+        # 1. PointCloud → LaserScan
         Node(
             package='pointcloud_to_laserscan',
             executable='pointcloud_to_laserscan_node',
@@ -38,6 +39,7 @@ def generate_launch_description():
             ],
         ),
 
+        # 2. Remap (odom + scan)
         Node(
             package='g1_slam',
             executable='remap',
@@ -49,10 +51,12 @@ def generate_launch_description():
             ],
         ),
         
+        # 🔴 CORREÇÃO AQUI
+        # TF entre base do robô e lidar
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
-            name='base_to_lidar_tf',
+            name='robot_center_to_lidar_tf',
             arguments=[
                 '--x', '0',
                 '--y', '0',
@@ -60,11 +64,12 @@ def generate_launch_description():
                 '--roll', '0',
                 '--pitch', '0',
                 '--yaw', '0',
-                '--frame-id', 'base_link',
+                '--frame-id', 'robot_center',   # ✅ CORRIGIDO
                 '--child-frame-id', 'lidar_link'
             ]
         ),
         
+        # 4. SLAM
         Node(
             package='slam_toolbox',
             executable='async_slam_toolbox_node',

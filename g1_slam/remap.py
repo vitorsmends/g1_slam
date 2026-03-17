@@ -28,7 +28,6 @@ class RemapAndFixTF(Node):
         self.declare_parameter("in_scan", "/scan")
         self.declare_parameter("out_scan", "/scan_fixed")
         self.declare_parameter("odom_frame", "odom")
-        self.declare_parameter("base_frame", "base_link")
         self.declare_parameter("lidar_frame", "lidar_link")
         self.declare_parameter("normalize_quaternion", True)
 
@@ -37,7 +36,6 @@ class RemapAndFixTF(Node):
         self.in_scan = self.get_parameter("in_scan").value
         self.out_scan = self.get_parameter("out_scan").value
         self.odom_frame = self.get_parameter("odom_frame").value
-        self.base_frame = self.get_parameter("base_frame").value
         self.lidar_frame = self.get_parameter("lidar_frame").value
         self.normalize_quaternion = self.get_parameter("normalize_quaternion").value
 
@@ -76,7 +74,7 @@ class RemapAndFixTF(Node):
 
         self.tf_broadcaster = TransformBroadcaster(self)
 
-        self.get_logger().info("RemapAndFixTF node started")
+        self.get_logger().info("RemapAndFixTF node started (FRAME FIX)")
 
     def now(self):
         return self.get_clock().now().to_msg()
@@ -87,7 +85,9 @@ class RemapAndFixTF(Node):
 
         odom.header.stamp = self.now()
         odom.header.frame_id = self.odom_frame
-        odom.child_frame_id = self.base_frame
+
+        # ✅ CORREÇÃO: manter frame original
+        odom.child_frame_id = msg.child_frame_id
 
         odom.pose = msg.pose
         odom.twist = msg.twist
@@ -102,7 +102,9 @@ class RemapAndFixTF(Node):
         tf = TransformStamped()
         tf.header.stamp = odom.header.stamp
         tf.header.frame_id = self.odom_frame
-        tf.child_frame_id = self.base_frame
+
+        tf.child_frame_id = msg.child_frame_id
+
         tf.transform.translation.x = odom.pose.pose.position.x
         tf.transform.translation.y = odom.pose.pose.position.y
         tf.transform.translation.z = odom.pose.pose.position.z
