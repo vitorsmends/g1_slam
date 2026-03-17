@@ -1,7 +1,7 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, TimerAction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -20,7 +20,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='false',
+            default_value='true',
             description='Use simulation clock'
         ),
 
@@ -31,21 +31,10 @@ def generate_launch_description():
             output='screen',
             remappings=[
                 ('cloud_in', '/livox/lidar'),
-                ('scan', '/scan')
+                ('scan', '/scan_fixed')
             ],
             parameters=[
                 pc2ls_yaml,
-                {'use_sim_time': use_sim_time}
-            ],
-        ),
-
-        Node(
-            package='g1_slam',
-            executable='remap',
-            name='remap',
-            output='screen',
-            parameters=[
-                remap_yaml,
                 {'use_sim_time': use_sim_time}
             ],
         ),
@@ -55,25 +44,41 @@ def generate_launch_description():
             executable='static_transform_publisher',
             name='base_to_lidar_tf',
             arguments=[
-                '--x','0',
-                '--y','0',
-                '--z','0',
-                '--roll','0',
-                '--pitch','0',
-                '--yaw','0',
-                '--frame-id','base_link',
-                '--child-frame-id','lidar_link'
+                '0','0','0','0','0','0',
+                'base_link',
+                'lidar_link'
             ]
         ),
 
-        Node(
-            package='slam_toolbox',
-            executable='async_slam_toolbox_node',
-            name='slam_toolbox',
-            output='screen',
-            parameters=[
-                slam_config_path,
-                {'use_sim_time': use_sim_time}
+        TimerAction(
+            period=1.0,
+            actions=[
+                Node(
+                    package='g1_slam',
+                    executable='remap',
+                    name='remap',
+                    output='screen',
+                    parameters=[
+                        remap_yaml,
+                        {'use_sim_time': use_sim_time}
+                    ],
+                )
+            ]
+        ),
+
+        TimerAction(
+            period=2.0,
+            actions=[
+                Node(
+                    package='slam_toolbox',
+                    executable='async_slam_toolbox_node',
+                    name='slam_toolbox',
+                    output='screen',
+                    parameters=[
+                        slam_config_path,
+                        {'use_sim_time': use_sim_time}
+                    ]
+                )
             ]
         ),
     ])

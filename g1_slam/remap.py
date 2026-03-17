@@ -29,7 +29,7 @@ class RemapAndFixTF(Node):
         self.declare_parameter("out_scan", "/scan_fixed")
         self.declare_parameter("odom_frame", "odom")
         self.declare_parameter("base_frame", "base_link")
-        self.declare_parameter("lidar_frame", "lidar_link")
+        self.declare_parameter("lidar_frame", "livox_frame")
         self.declare_parameter("normalize_quaternion", True)
 
         self.in_odom = self.get_parameter("in_odom").value
@@ -83,9 +83,13 @@ class RemapAndFixTF(Node):
 
     def cb_odom(self, msg: Odometry):
 
-        odom = Odometry()
+        if msg.header.stamp.sec == 0:
+            current_time = self.now()
+        else:
+            current_time = msg.header.stamp
 
-        odom.header.stamp = self.now()
+        odom = Odometry()
+        odom.header.stamp = current_time
         odom.header.frame_id = self.odom_frame
         odom.child_frame_id = self.base_frame
 
@@ -100,7 +104,7 @@ class RemapAndFixTF(Node):
         self.odom_pub.publish(odom)
 
         tf = TransformStamped()
-        tf.header.stamp = odom.header.stamp
+        tf.header.stamp = self.now()
         tf.header.frame_id = self.odom_frame
         tf.child_frame_id = self.base_frame
         tf.transform.translation.x = odom.pose.pose.position.x
@@ -113,8 +117,7 @@ class RemapAndFixTF(Node):
     def cb_scan(self, msg: LaserScan):
 
         scan = LaserScan()
-
-        scan.header.stamp = self.now()
+        scan.header.stamp = msg.header.stamp
         scan.header.frame_id = self.lidar_frame
 
         scan.angle_min = msg.angle_min
