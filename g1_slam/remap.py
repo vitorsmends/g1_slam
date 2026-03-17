@@ -76,9 +76,12 @@ class Remap(Node):
 
     def cb_odom(self, msg: Odometry):
 
+        now = self.get_clock().now().to_msg()
+
         odom = Odometry()
 
-        odom.header.stamp = msg.header.stamp
+        # ✔ usa tempo atual (necessário pra bag ruim)
+        odom.header.stamp = now
 
         odom.header.frame_id = self.odom_frame
         odom.child_frame_id = self.base_frame
@@ -95,9 +98,12 @@ class Remap(Node):
 
     def cb_scan(self, msg: LaserScan):
 
+        now = self.get_clock().now().to_msg()
+
         scan = LaserScan()
 
-        scan.header.stamp = msg.header.stamp
+        # ✔ usa o MESMO tempo base
+        scan.header.stamp = now
 
         scan.header.frame_id = self.lidar_frame
 
