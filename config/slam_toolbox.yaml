@@ -12,7 +12,7 @@ slam_toolbox:
     # ── Frames ───────────────────────────────────────────────────────────────
     odom_frame:  odom
     map_frame:   map
-    base_frame:  livox_frame
+    base_frame:  base_link
     scan_topic:  /scan
 
     # ── Modo ─────────────────────────────────────────────────────────────────
@@ -57,8 +57,8 @@ slam_toolbox:
     minimum_travel_distance:   0.1
     minimum_travel_heading:    0.175
     transform_publish_period:  0.02
-    transform_timeout:         2.5
-    tf_buffer_duration:       30.0
+    transform_timeout:         0.5
+    tf_buffer_duration:       60.0
 
     # ── Serialização ──────────────────────────────────────────────────────────
     use_map_saver:       false
@@ -66,4 +66,4 @@ slam_toolbox:
     map_start_pose:      [0.0, 0.0, 0.0]
     map_start_at_dock:   false
     debug_logging:       false
-    throttle_scans:      1
+    throttle_scans:      2
