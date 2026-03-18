@@ -3,19 +3,25 @@ slam.launch.py
 ==============
 Launch file para SLAM do Unitree G1 com LiDAR Livox Mid360.
 
-Problema identificado: o G1 nunca publica a TF odom → base_link.
-O /dog_odom tem frame_id: odom e child_frame_id: robot_center mas
-não gera TF. O nó odom_to_tf converte esse tópico em TF.
+Problema de timestamps identificado:
+  /scan (Livox hardware clock) : ~1773854368  (+60s à frente)
+  /dog_odom                    : ~1773854307  (60s atrás do scan)
+
+Solução:
+  - odom_to_tf usa ros::now() no timestamp da TF → alinha com o sistema
+  - restamp_cloud traz o scan para ros::now() → alinha com a TF
+
+Após isso, todos os timestamps ficam alinhados com o ROS clock.
 
 TF tree após este launch:
-  odom → base_link          ← publicado por odom_to_tf (via /dog_odom)
+  odom → base_link (via odom_to_tf, ~50 Hz, timestamp = now())
    └── pelvis → ... → torso_link → mid360_link → livox_frame
-                                                  (já publicado pelo robô)
 
 Nós iniciados:
-  1. odom_to_tf             — /dog_odom → TF odom→base_link
-  2. pointcloud_to_laserscan — /livox/lidar → /scan
-  3. slam_toolbox            — /scan → /map + TF map→odom
+  1. odom_to_tf             — /dog_odom → TF odom→base_link (timestamp now())
+  2. restamp_cloud          — /livox/lidar → /livox/lidar_restamped (timestamp now())
+  3. pointcloud_to_laserscan — /livox/lidar_restamped → /scan
+  4. slam_toolbox            — /scan → /map + TF map→odom
 """
 
 from launch import LaunchDescription
@@ -56,11 +62,8 @@ def generate_launch_description():
     pc_config    = LaunchConfiguration("pc_config")
 
     # ── 1. odom → base_link TF ───────────────────────────────────────────────
-    #
-    #  O G1 não publica odom→base_link no TF tree.
-    #  Convertemos /dog_odom em TF para fechar a cadeia:
-    #    odom → base_link → pelvis → ... → livox_frame
-    #
+    #  Converte /dog_odom em TF usando ros::now() como timestamp
+    #  para alinhar com o ROS clock do sistema.
     odom_to_tf_node = Node(
         package="g1_slam",
         executable="odom_to_tf.py",
@@ -69,7 +72,18 @@ def generate_launch_description():
         parameters=[{"use_sim_time": use_sim_time}],
     )
 
-    # ── 2. PointCloud2 → LaserScan ────────────────────────────────────────────
+    # ── 2. Re-stamp do LiDAR ─────────────────────────────────────────────────
+    #  O Livox publica com hardware clock ~60s à frente do dog_odom.
+    #  Substituímos por ros::now() para alinhar com a TF odom→base_link.
+    restamp_cloud_node = Node(
+        package="g1_slam",
+        executable="restamp_cloud.py",
+        name="restamp_cloud",
+        output="screen",
+        parameters=[{"use_sim_time": use_sim_time}],
+    )
+
+    # ── 3. PointCloud2 → LaserScan ────────────────────────────────────────────
     pc_to_laserscan_node = Node(
         package="pointcloud_to_laserscan",
         executable="pointcloud_to_laserscan_node",
@@ -80,12 +94,12 @@ def generate_launch_description():
             {"use_sim_time": use_sim_time},
         ],
         remappings=[
-            ("cloud_in", "/livox/lidar"),
+            ("cloud_in", "/livox/lidar_restamped"),
             ("scan",     "/scan"),
         ],
     )
 
-    # ── 3. slam_toolbox ───────────────────────────────────────────────────────
+    # ── 4. slam_toolbox ───────────────────────────────────────────────────────
     slam_node = Node(
         package="slam_toolbox",
         executable="sync_slam_toolbox_node",
@@ -102,6 +116,7 @@ def generate_launch_description():
         arg_slam_config,
         arg_pc_config,
         odom_to_tf_node,
+        restamp_cloud_node,
         pc_to_laserscan_node,
         slam_node,
     ])

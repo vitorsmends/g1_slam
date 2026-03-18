@@ -47,7 +47,7 @@ class OdomToTf(Node):
 
     def _cb(self, msg: Odometry):
         t = TransformStamped()
-        t.header.stamp    = msg.header.stamp
+        t.header.stamp    = self.get_clock().now().to_msg()
         t.header.frame_id = "odom"       # pai
         t.child_frame_id  = "base_link"  # filho (robot_center == base_link)
 
