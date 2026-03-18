@@ -12,7 +12,7 @@ slam_toolbox:
     # ── Frames ───────────────────────────────────────────────────────────────
     odom_frame:  odom
     map_frame:   map
-    base_frame:  base_link
+    base_frame:  livox_frame
     scan_topic:  /scan
 
     # ── Modo ─────────────────────────────────────────────────────────────────
