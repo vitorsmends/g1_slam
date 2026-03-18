@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <n>g1_slam</n>
+  <name>g1_slam</name>
   <version>0.1.0</version>
   <description>SLAM and Nav2 navigation for the Unitree G1 humanoid robot.</description>
   <maintainer email="dev@robot.local">dev</maintainer>
@@ -10,26 +10,20 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
 
-  <!-- Launch & Python -->
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
 
-  <!-- TF -->
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>tf2_geometry_msgs</exec_depend>
 
-  <!-- Sensor processing -->
   <exec_depend>pointcloud_to_laserscan</exec_depend>
 
-  <!-- SLAM -->
   <exec_depend>slam_toolbox</exec_depend>
 
-  <!-- Message types -->
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
 
-  <!-- Nav2 -->
   <exec_depend>nav2_bt_navigator</exec_depend>
   <exec_depend>nav2_controller</exec_depend>
   <exec_depend>nav2_planner</exec_depend>
