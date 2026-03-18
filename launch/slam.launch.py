@@ -3,15 +3,19 @@ slam.launch.py
 ==============
 Launch file para SLAM do Unitree G1 com LiDAR Livox Mid360.
 
-TF tree completo publicado pelo robô (não publicamos nada):
-  odom → base_link → pelvis → ... → torso_link → mid360_link → livox_frame
+Problema identificado: o G1 nunca publica a TF odom → base_link.
+O /dog_odom tem frame_id: odom e child_frame_id: robot_center mas
+não gera TF. O nó odom_to_tf converte esse tópico em TF.
 
-Timestamps: /scan chega ~1.6s atrás do /tf — tolerado via transform_timeout
-no slam_toolbox.yaml (transform_timeout: 2.0).
+TF tree após este launch:
+  odom → base_link          ← publicado por odom_to_tf (via /dog_odom)
+   └── pelvis → ... → torso_link → mid360_link → livox_frame
+                                                  (já publicado pelo robô)
 
 Nós iniciados:
-  1. pointcloud_to_laserscan — /livox/lidar → /scan
-  2. slam_toolbox            — /scan → /map + TF map→odom
+  1. odom_to_tf             — /dog_odom → TF odom→base_link
+  2. pointcloud_to_laserscan — /livox/lidar → /scan
+  3. slam_toolbox            — /scan → /map + TF map→odom
 """
 
 from launch import LaunchDescription
@@ -51,7 +55,21 @@ def generate_launch_description():
     slam_config  = LaunchConfiguration("slam_config")
     pc_config    = LaunchConfiguration("pc_config")
 
-    # ── 1. PointCloud2 → LaserScan ────────────────────────────────────────────
+    # ── 1. odom → base_link TF ───────────────────────────────────────────────
+    #
+    #  O G1 não publica odom→base_link no TF tree.
+    #  Convertemos /dog_odom em TF para fechar a cadeia:
+    #    odom → base_link → pelvis → ... → livox_frame
+    #
+    odom_to_tf_node = Node(
+        package="g1_slam",
+        executable="odom_to_tf.py",
+        name="odom_to_tf",
+        output="screen",
+        parameters=[{"use_sim_time": use_sim_time}],
+    )
+
+    # ── 2. PointCloud2 → LaserScan ────────────────────────────────────────────
     pc_to_laserscan_node = Node(
         package="pointcloud_to_laserscan",
         executable="pointcloud_to_laserscan_node",
@@ -67,7 +85,7 @@ def generate_launch_description():
         ],
     )
 
-    # ── 2. slam_toolbox ───────────────────────────────────────────────────────
+    # ── 3. slam_toolbox ───────────────────────────────────────────────────────
     slam_node = Node(
         package="slam_toolbox",
         executable="sync_slam_toolbox_node",
@@ -83,6 +101,7 @@ def generate_launch_description():
         arg_use_sim_time,
         arg_slam_config,
         arg_pc_config,
+        odom_to_tf_node,
         pc_to_laserscan_node,
         slam_node,
     ])
