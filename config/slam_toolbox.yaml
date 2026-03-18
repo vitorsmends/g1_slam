@@ -1,8 +1,8 @@
 # ─── slam_toolbox — Unitree G1 ────────────────────────────────────────────────
 #
-# Frame convention (publicado pelo robô):
-#   odom → base_link  (~20 Hz, por /robot_state)
-#   base_link → ... → livox_frame  (cadeia completa via robot_state_publisher)
+# Frame convention:
+#   odom → base_link  (via odom_to_tf, corrigido pelo offset de clock)
+#   base_link → ... → livox_frame  (cadeia do robô)
 #
 # O slam_toolbox publica: map → odom
 
@@ -26,23 +26,27 @@ slam_toolbox:
     ceres_dogleg_type:          TRADITIONAL_DOGLEG
     ceres_loss_function:        None
 
-    # ── Scan Matcher ──────────────────────────────────────────────────────────
-    scan_buffer_size:                    10
+    # ── Scan Matcher — mais agressivo para corrigir drift de odom ─────────────
+    #
+    # Aumentamos o search space angular para que o matcher consiga
+    # corrigir erros de yaw maiores da odometria do G1.
+    scan_buffer_size:                    20      # mais scans no buffer
     scan_buffer_maximum_scan_distance:   10.0
     link_match_minimum_response_fine:    0.1
-    link_scan_maximum_distance:          1.5
-    loop_search_maximum_distance:        3.0
+    link_scan_maximum_distance:          2.0     # aceita matches mais distantes
+    loop_search_maximum_distance:        5.0     # busca loop closing mais longe
     do_loop_closing:                     true
     loop_match_minimum_chain_size:       10
     loop_match_maximum_variance_coarse:  3.0
     loop_match_minimum_response_coarse:  0.35
     loop_match_minimum_response_fine:    0.45
 
-    # ── Correlação ────────────────────────────────────────────────────────────
-    distance_variance_penalty:   0.5
-    angle_variance_penalty:      1.0
+    # ── Correlação — search space maior para corrigir yaw ─────────────────────
+    distance_variance_penalty:   0.3     # menos penalidade em distância
+    angle_variance_penalty:      0.5     # menos penalidade angular — permite
+                                         # corrigir mais o yaw da odometria
     fine_search_angle_offset:    0.00349
-    coarse_search_angle_offset:  0.349
+    coarse_search_angle_offset:  0.785   # ~45° — cobre o erro observado
     coarse_angle_resolution:     0.0349
     minimum_angle_penalty:       0.9
     minimum_distance_penalty:    0.5
