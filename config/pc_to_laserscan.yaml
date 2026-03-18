@@ -1,36 +1,28 @@
-# ─── pointcloud_to_laserscan parameters ───────────────────────────────────────
+# ─── pointcloud_to_laserscan — Unitree G1 / Livox Mid360 ──────────────────────
 #
-# Converts the Livox 3D point cloud into a 2D LaserScan that slam_toolbox can
-# consume.  Only points within [min_height, max_height] relative to the sensor
-# frame are kept, giving us a "virtual horizontal slice" of the environment.
+# Configuração baseada na que funcionava no robô.
 #
-# IMPORTANT – target_frame:
-#   We project into base_link so that the 2D scan is expressed in a frame that
-#   is upright (gravity-aligned) and centred on the robot.  This compensates for
-#   any pitch/roll the robot_center / livox_frame may accumulate while walking.
-#
-# Adjust min_height / max_height to choose which slice of the world to map.
-# For a humanoid walking indoors, keeping -0.3 → +0.3 m around base_link Z
-# captures walls and furniture legs without floor or ceiling noise.
+# target_frame: livox_frame
+#   Projeção direta no frame do sensor, sem lookup de TF adicional.
+#   O livox_frame tem 180° de roll (sensor montado invertido no mid360_link),
+#   mas como projetamos no próprio frame, isso é transparente.
+#   O slam_toolbox resolve a pose completa via TF:
+#     livox_frame → mid360_link → torso_link → ... → base_link → odom
 
-pointcloud_to_laserscan_node:
+pc_to_ls:
   ros__parameters:
-    # Source frame is livox_frame; we re-express points in base_link before slicing
-    target_frame: base_link
-    transform_tolerance: 0.1          # [s]  TF lookup tolerance
+    target_frame: livox_frame
+    transform_tolerance: 0.05
 
-    # Vertical slice (relative to target_frame Z)
-    min_height: -0.30                 # [m]
-    max_height:  0.30                 # [m]
+    min_height: -1.0
+    max_height:  1.0
 
-    # 2-D scan geometry
-    angle_min:  -3.14159265           # [rad]  full 360° — Livox covers ≥120°
-    angle_max:   3.14159265
-    angle_increment: 0.00436332       # [rad]  ≈ 0.25°
-    scan_time:   0.10                 # [s]    matches typical Livox 10 Hz publish
-    range_min:   0.10                 # [m]
-    range_max:  30.0                  # [m]
+    angle_min:        -3.1415
+    angle_max:         3.1415
+    angle_increment:   0.0087   # ≈ 0.5°
+    scan_time:         0.1      # 10 Hz
+    range_min:         0.3
+    range_max:        50.0
 
-    # Use intensity field from Livox if available
-    use_inf: true
+    use_inf:     true
     inf_epsilon: 1.0
