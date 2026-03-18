@@ -70,7 +70,7 @@ def generate_launch_description():
     # ── 2. slam_toolbox ───────────────────────────────────────────────────────
     slam_node = Node(
         package="slam_toolbox",
-        executable="async_slam_toolbox_node",
+        executable="sync_slam_toolbox_node",
         name="slam_toolbox",
         output="screen",
         parameters=[
