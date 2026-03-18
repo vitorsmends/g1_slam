@@ -2,23 +2,36 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>g1_slam</name>
-  <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="vitormendesrb@gmail.com">mendes</maintainer>
-  <license>TODO: License declaration</license>
+  <version>0.1.0</version>
+  <description>SLAM package for humanoid robot using Livox 3D LiDAR and dog_odom odometry.</description>
+  <maintainer email="dev@robot.local">dev</maintainer>
+  <license>MIT</license>
 
-  <depend>rclpy</depend>
-  <depend>tf2_ros</depend>
-  <depend>pointcloud_to_laserscan</depend>
-  <depend>slam_toolbox</depend>
-  <depend>rviz2</depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <test_depend>ament_copyright</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_pep257</test_depend>
-  <test_depend>python3-pytest</test_depend>
+  <!-- Launch & Python -->
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <!-- TF -->
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
+
+  <!-- Sensor processing -->
+  <exec_depend>pointcloud_to_laserscan</exec_depend>
+
+  <!-- SLAM -->
+  <exec_depend>slam_toolbox</exec_depend>
+
+  <!-- Sensor msgs -->
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+
+  <!-- Relay / static TF -->
+  <exec_depend>robot_state_publisher</exec_depend>
 
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

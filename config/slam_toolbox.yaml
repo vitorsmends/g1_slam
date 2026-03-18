@@ -1,0 +1,72 @@
+# ─── slam_toolbox – async online mapping ──────────────────────────────────────
+#
+# Uses the odometry-assisted mode (odom_frame / base_frame) together with the
+# scan matcher to build a 2-D occupancy map while the humanoid walks around.
+#
+# Frame convention (must match the TF tree we publish):
+#   map → odom  : published by slam_toolbox (pose graph correction)
+#   odom → robot_center : published by /dog_odom
+#   robot_center → base_link : static (identity)
+#   base_link → livox_frame : static (sensor mount)
+
+slam_toolbox:
+  ros__parameters:
+
+    # ── Frames ──────────────────────────────────────────────────────────────
+    odom_frame:   odom
+    map_frame:    map
+    base_frame:   base_link      # slam_toolbox queries odom→base_link
+    scan_topic:   /scan          # output of pointcloud_to_laserscan
+
+    # ── Mode ────────────────────────────────────────────────────────────────
+    mode: mapping                # mapping | localization
+
+    # ── Solver ──────────────────────────────────────────────────────────────
+    solver_plugin:              solver_plugins::CeresSolver
+    ceres_linear_solver:        SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner:       SCHUR_JACOBI
+    ceres_trust_strategy:       LEVENBERG_MARQUARDT
+    ceres_dogleg_type:          TRADITIONAL_DOGLEG
+    ceres_loss_function:        None
+
+    # ── Scan Matcher ─────────────────────────────────────────────────────────
+    scan_buffer_size:           10
+    scan_buffer_maximum_scan_distance: 10.0
+    link_match_minimum_response_fine:  0.1
+    link_scan_maximum_distance:        1.5
+    loop_search_maximum_distance:      3.0
+    do_loop_closing:                   true
+    loop_match_minimum_chain_size:     10
+    loop_match_maximum_variance_coarse: 3.0
+    loop_match_minimum_response_coarse: 0.35
+    loop_match_minimum_response_fine:   0.45
+
+    # ── Correlation / search ─────────────────────────────────────────────────
+    distance_variance_penalty:         0.5
+    angle_variance_penalty:            1.0
+    fine_search_angle_offset:          0.00349
+    coarse_search_angle_offset:        0.349
+    coarse_angle_resolution:           0.0349
+    minimum_angle_penalty:             0.9
+    minimum_distance_penalty:          0.5
+    use_response_expansion:            true
+
+    # ── Map update ────────────────────────────────────────────────────────────
+    resolution:                        0.05   # [m/cell]
+    map_update_interval:               5.0    # [s]  save pose graph interval
+    max_laser_range:                  20.0    # clip at 20 m for indoor use
+
+    # ── Misc ──────────────────────────────────────────────────────────────────
+    minimum_travel_distance:           0.1    # [m]  insert scan after moving this far
+    minimum_travel_heading:            0.175  # [rad] ~10°
+    transform_publish_period:          0.02   # [s]  map→odom TF rate
+    transform_timeout:                 0.2
+    tf_buffer_duration:               30.0
+
+    # ── Serialisation (save / resume map) ────────────────────────────────────
+    use_map_saver:                     false
+    map_file_name:                     /tmp/humanoid_map
+    map_start_pose:                    [0.0, 0.0, 0.0]
+    map_start_at_dock:                 false
+    debug_logging:                     false
+    throttle_scans:                    1
