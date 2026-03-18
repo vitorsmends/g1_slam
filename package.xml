@@ -1,13 +1,14 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>g1_slam</name>
+  <n>g1_slam</n>
   <version>0.1.0</version>
-  <description>SLAM package for humanoid robot using Livox 3D LiDAR and dog_odom odometry.</description>
+  <description>SLAM and Nav2 navigation for the Unitree G1 humanoid robot.</description>
   <maintainer email="dev@robot.local">dev</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <!-- Launch & Python -->
   <exec_depend>launch</exec_depend>
@@ -23,13 +24,21 @@
   <!-- SLAM -->
   <exec_depend>slam_toolbox</exec_depend>
 
-  <!-- Sensor msgs -->
+  <!-- Message types -->
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
 
-  <!-- Relay / static TF -->
-  <exec_depend>robot_state_publisher</exec_depend>
+  <!-- Nav2 -->
+  <exec_depend>nav2_bt_navigator</exec_depend>
+  <exec_depend>nav2_controller</exec_depend>
+  <exec_depend>nav2_planner</exec_depend>
+  <exec_depend>nav2_behaviors</exec_depend>
+  <exec_depend>nav2_waypoint_follower</exec_depend>
+  <exec_depend>nav2_velocity_smoother</exec_depend>
+  <exec_depend>nav2_lifecycle_manager</exec_depend>
+  <exec_depend>nav2_navfn_planner</exec_depend>
+  <exec_depend>dwb_core</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
