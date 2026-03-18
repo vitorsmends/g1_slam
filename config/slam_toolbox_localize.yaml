@@ -16,7 +16,9 @@ slam_toolbox:
     scan_topic:  /scan
 
     # ── Mode ─────────────────────────────────────────────────────────────────
-    mode: mapping
+    # localization: loads the saved map and localizes within it.
+    # mapping:      builds a new map from scratch.
+    mode: localization
 
     # ── Solver ───────────────────────────────────────────────────────────────
     solver_plugin:              solver_plugins::CeresSolver
@@ -64,8 +66,14 @@ slam_toolbox:
     tf_buffer_duration:       60.0
 
     # ── Serialization ────────────────────────────────────────────────────────
+    # Path to the saved map (without extension).
+    # slam_toolbox expects a .posegraph file saved via serialize_map service,
+    # NOT the .pgm/.yaml saved by map_saver_cli.
+    # To save: ros2 service call /slam_toolbox/serialize_map \
+    #            slam_toolbox/srv/SerializePoseGraph \
+    #            "{filename: '/home/unitree/maps/map_robotspace'}"
     use_map_saver:       false
-    map_file_name:       ""
+    map_file_name:       /home/unitree/maps/map_robotspace
     map_start_pose:      [0.0, 0.0, 0.0]
     map_start_at_dock:   false
     debug_logging:       false
