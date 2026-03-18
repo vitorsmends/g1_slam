@@ -4,25 +4,14 @@ slam.launch.py
 Launch file para SLAM do Unitree G1 com LiDAR Livox Mid360.
 
 TF tree completo publicado pelo robô (não publicamos nada):
-  odom → base_link → pelvis → waist_yaw → waist_roll → torso_link
-                                                         └── mid360_link
-                                                              └── livox_frame (180° roll)
+  odom → base_link → pelvis → ... → torso_link → mid360_link → livox_frame
 
-Nós do robô responsáveis pelas TFs:
-  /robot_state           → odom → base_link  (~20 Hz)
-  /robot_state_publisher → corpo todo via joint_states
-  /mid360_to_livox_tf    → mid360_link → livox_frame (estática, 180° roll)
+Timestamps: /scan chega ~1.6s atrás do /tf — tolerado via transform_timeout
+no slam_toolbox.yaml (transform_timeout: 2.0).
 
-Timestamps no robô real: todos alinhados com ROS clock, sem problema.
-
-Nós iniciados por este launch:
+Nós iniciados:
   1. pointcloud_to_laserscan — /livox/lidar → /scan
   2. slam_toolbox            — /scan → /map + TF map→odom
-
-Argumentos:
-  use_sim_time  [true|false]  default: false
-  slam_config   path para YAML do slam_toolbox
-  pc_config     path para YAML do pointcloud_to_laserscan
 """
 
 from launch import LaunchDescription
@@ -42,7 +31,6 @@ def _pkg_path(*parts):
 
 def generate_launch_description():
 
-    # ── Argumentos ───────────────────────────────────────────────────────────
     arg_use_sim_time = DeclareLaunchArgument(
         "use_sim_time",
         default_value="false",
@@ -64,16 +52,6 @@ def generate_launch_description():
     pc_config    = LaunchConfiguration("pc_config")
 
     # ── 1. PointCloud2 → LaserScan ────────────────────────────────────────────
-    #
-    #  Converte a nuvem 3D do Livox Mid360 em LaserScan 2D.
-    #
-    #  target_frame: livox_frame (sem lookup de TF extra — projeção direta
-    #  no frame do sensor, igual à configuração original que funcionava).
-    #
-    #  O livox_frame tem 180° de roll em relação ao mid360_link, então
-    #  o sensor está montado invertido. O pc_to_laserscan lida com isso
-    #  naturalmente ao projetar no próprio frame do sensor.
-    #
     pc_to_laserscan_node = Node(
         package="pointcloud_to_laserscan",
         executable="pointcloud_to_laserscan_node",
@@ -90,11 +68,6 @@ def generate_launch_description():
     )
 
     # ── 2. slam_toolbox ───────────────────────────────────────────────────────
-    #
-    #  Consome /scan (em livox_frame) e resolve a pose via TF:
-    #    livox_frame → mid360_link → torso_link → ... → base_link → odom
-    #  Publica map → odom.
-    #
     slam_node = Node(
         package="slam_toolbox",
         executable="async_slam_toolbox_node",

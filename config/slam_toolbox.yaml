@@ -57,7 +57,7 @@ slam_toolbox:
     minimum_travel_distance:   0.1
     minimum_travel_heading:    0.175
     transform_publish_period:  0.02
-    transform_timeout:         0.2
+    transform_timeout:         2.5
     tf_buffer_duration:       30.0
 
     # ── Serialização ──────────────────────────────────────────────────────────
