@@ -2,17 +2,12 @@
 """
 odom_to_tf.py
 =============
-Converte /dog_odom em TF odom → base_link.
+Converts /dog_odom (nav_msgs/Odometry) into a TF transform: odom -> base_link.
 
-O dog_odom do G1 publica com um offset constante de ~61s em relação
-ao clock do sistema. Medimos esse offset na primeira mensagem e o
-aplicamos a todas as mensagens seguintes, mantendo consistência
-temporal perfeita com o restante do sistema (TF tree, scan, etc).
-
-Dessa forma:
-  - A TF odom→base_link fica alinhada com o clock do sistema
-  - O offset entre mensagens consecutivas é preservado exatamente
-  - Não há interpolação incorreta no slam_toolbox
+The Unitree G1 publishes /dog_odom with a constant clock offset of ~61s
+behind the system clock. The offset is measured automatically on the first
+message and applied to all subsequent messages, keeping temporal consistency
+with the rest of the system (TF tree, scan, etc).
 """
 
 import rclpy
@@ -30,7 +25,7 @@ class OdomToTf(Node):
         super().__init__("odom_to_tf")
 
         self._br = TransformBroadcaster(self)
-        self._offset_ns = None  # offset em nanosegundos, medido na 1a mensagem
+        self._offset_ns = None
 
         qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -42,7 +37,7 @@ class OdomToTf(Node):
             Odometry, "/dog_odom", self._cb, qos
         )
         self.get_logger().info(
-            "odom_to_tf: aguardando primeira mensagem para medir offset de clock..."
+            "odom_to_tf: waiting for first message to measure clock offset..."
         )
 
     def _stamp_to_ns(self, stamp) -> int:
@@ -58,16 +53,14 @@ class OdomToTf(Node):
         now_ns = self.get_clock().now().nanoseconds
         msg_ns = self._stamp_to_ns(msg.header.stamp)
 
-        # Mede o offset apenas uma vez na primeira mensagem
+        # Measure the clock offset once on the first message
         if self._offset_ns is None:
             self._offset_ns = now_ns - msg_ns
-            offset_s = self._offset_ns / 1e9
             self.get_logger().info(
-                f"odom_to_tf: offset de clock medido = {offset_s:.3f}s — "
-                f"aplicando a todas as mensagens"
+                f"odom_to_tf: clock offset measured = {self._offset_ns / 1e9:.3f}s"
             )
 
-        # Aplica o offset preservando a diferença entre mensagens
+        # Apply offset while preserving the delta between consecutive messages
         corrected_ns = msg_ns + self._offset_ns
 
         t = TransformStamped()

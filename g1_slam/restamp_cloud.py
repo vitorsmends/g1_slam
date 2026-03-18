@@ -2,20 +2,21 @@
 """
 restamp_cloud.py
 ================
-Re-publica a nuvem Livox com o timestamp corrigido pelo mesmo offset
-de clock aplicado pelo odom_to_tf.
+Re-publishes the Livox point cloud with a corrected timestamp.
 
-O Livox publica com clock de hardware (PTP) alinhado com o sistema.
-O dog_odom publica com clock ~61s atrasado.
-O odom_to_tf corrige o dog_odom somando o offset medido.
+The Livox publishes with a hardware PTP clock aligned with the system.
+The dog_odom publishes ~61s behind the system clock.
+The odom_to_tf corrects dog_odom by adding the measured offset.
 
-Para que scan e TF odom→base_link estejam no mesmo tempo, o scan
-também precisa ser corrigido pelo mesmo offset do dog_odom.
+To keep the scan and the odom->base_link TF in the same time reference,
+the scan timestamp is replaced with ros::now(), which matches the
+corrected TF timestamp published by odom_to_tf.
 
-Funcionamento:
-  - Subscreve /dog_odom para medir o offset (mesmo método do odom_to_tf)
-  - Aplica o offset inverso ao scan: stamp_scan - offset
-    (traz o scan do clock do hardware para o clock do dog_odom corrigido)
+Subscriptions:
+  /livox/lidar   (sensor_msgs/PointCloud2)
+  /dog_odom      (nav_msgs/Odometry)
+Publications:
+  /livox/lidar_restamped (sensor_msgs/PointCloud2)
 """
 
 import rclpy
@@ -54,7 +55,7 @@ class RestampCloud(Node):
             Odometry, "/dog_odom", self._odom_cb, qos_be
         )
         self.get_logger().info(
-            "restamp_cloud: aguardando dog_odom para medir offset de clock..."
+            "restamp_cloud: waiting for dog_odom to measure clock offset..."
         )
 
     def _stamp_to_ns(self, stamp) -> int:
@@ -71,22 +72,16 @@ class RestampCloud(Node):
             now_ns = self.get_clock().now().nanoseconds
             msg_ns = self._stamp_to_ns(msg.header.stamp)
             self._offset_ns = now_ns - msg_ns
-            offset_s = self._offset_ns / 1e9
             self.get_logger().info(
-                f"restamp_cloud: offset de clock medido = {offset_s:.3f}s"
+                f"restamp_cloud: clock offset measured = {self._offset_ns / 1e9:.3f}s"
             )
 
     def _cloud_cb(self, msg: PointCloud2):
+        # Wait until the clock offset has been measured
         if self._offset_ns is None:
-            # Ainda não medimos o offset — descarta
             return
 
-        # O scan está no clock do sistema (hardware PTP alinhado).
-        # O odom_to_tf corrigiu o dog_odom somando offset.
-        # Para alinhar o scan com a TF corrigida, subtraímos o offset
-        # e depois somamos de volta — equivalente a usar o timestamp
-        # do dog_odom mais próximo.
-        # Na prática: usamos now() que já está alinhado com a TF corrigida.
+        # Use ros::now() which matches the corrected TF timestamp
         now_ns = self.get_clock().now().nanoseconds
         msg.header.stamp = self._ns_to_stamp(now_ns)
         self._pub.publish(msg)

@@ -2,12 +2,12 @@
 """
 restamp_odom.py
 ===============
-Re-publica o /dog_odom com o timestamp corrigido pelo offset de clock.
+Re-publishes /dog_odom with a corrected timestamp.
 
-O dog_odom publica com ~61s de atraso em relação ao clock do sistema.
-O offset é medido automaticamente na primeira mensagem e aplicado
-a todas as seguintes — mesmo método do odom_to_tf e restamp_cloud,
-garantindo consistência temporal entre TF, scan e odometria.
+The dog_odom publishes ~61s behind the system clock.
+The offset is measured automatically on the first message and applied
+to all subsequent ones — same method as odom_to_tf and restamp_cloud,
+ensuring temporal consistency across TF, scan and odometry topics.
 
 Subscriptions:  /dog_odom           (nav_msgs/Odometry)
 Publications:   /dog_odom_restamped  (nav_msgs/Odometry)
@@ -45,7 +45,7 @@ class RestampOdom(Node):
             Odometry, "/dog_odom", self._cb, qos_sub
         )
         self.get_logger().info(
-            "restamp_odom: aguardando primeira mensagem para medir offset..."
+            "restamp_odom: waiting for first message to measure clock offset..."
         )
 
     def _stamp_to_ns(self, stamp) -> int:
@@ -64,7 +64,7 @@ class RestampOdom(Node):
         if self._offset_ns is None:
             self._offset_ns = now_ns - msg_ns
             self.get_logger().info(
-                f"restamp_odom: offset medido = {self._offset_ns / 1e9:.3f}s"
+                f"restamp_odom: clock offset measured = {self._offset_ns / 1e9:.3f}s"
             )
 
         corrected_ns = msg_ns + self._offset_ns
