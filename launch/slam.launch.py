@@ -12,18 +12,18 @@ TF tree after this launch:
 
 Topics published for the Dijkstra planner:
   /map          (nav_msgs/OccupancyGrid)  <- slam_toolbox
-  /g1slam/pose  (nav_msgs/Odometry)       <- pose_publisher (map->base_link)
+  /inorbit/odom_pose  (nav_msgs/Odometry)       <- pose_publisher (map->base_link)
 
 Dijkstra planner configuration:
   map_topic:  '/map'
-  odom_topic: '/g1slam/pose'
+  odom_topic: '/inorbit/odom_pose'
 
 Nodes started:
   1. odom_to_tf              - /dog_odom -> TF odom->base_link
   2. restamp_cloud           - /livox/lidar -> /livox/lidar_restamped
   3. pointcloud_to_laserscan - /livox/lidar_restamped -> /scan
   4. slam_toolbox            - /scan -> /map + TF map->odom
-  5. pose_publisher          - TF map->base_link -> /g1slam/pose
+  5. pose_publisher          - TF map->base_link -> /inorbit/odom_pose
 
 Arguments:
   use_sim_time  [true|false]  default: false

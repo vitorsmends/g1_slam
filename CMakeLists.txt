@@ -10,6 +10,7 @@ install(PROGRAMS
   g1_slam/restamp_cloud.py
   g1_slam/restamp_odom.py
   g1_slam/odom_to_tf.py
+  g1_slam/pose_publisher.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
