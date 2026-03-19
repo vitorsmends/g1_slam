@@ -1,60 +1,92 @@
+#!/usr/bin/env python3
+"""
+odom_to_tf.py
+=============
+Converts /dog_odom (nav_msgs/Odometry) into a TF transform: odom -> base_link.
+
+The Unitree G1 publishes /dog_odom with a constant clock offset of ~61s
+behind the system clock. The offset is measured automatically on the first
+message and applied to all subsequent messages, keeping temporal consistency
+with the rest of the system (TF tree, scan, etc).
+"""
+
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from nav_msgs.msg import Odometry
-from tf2_ros import TransformBroadcaster
 from geometry_msgs.msg import TransformStamped
-import math
+from tf2_ros import TransformBroadcaster
+from builtin_interfaces.msg import Time
 
-class OdomToTF2D(Node):
+
+class OdomToTf(Node):
+
     def __init__(self):
-        super().__init__('odom_to_tf_node')
-        
-        # 1. Importante: Declarar o parâmetro para o nó aceitar sim_time
-        self.declare_parameter('use_sim_time', True)
-        
-        # 2. O Broadcaster usará o clock do nó (que segue a bag se use_sim_time=True)
-        self.br = TransformBroadcaster(self)
-        
-        self.subscription = self.create_subscription(
-            Odometry,
-            '/dog_odom',
-            self.handle_odom,
-            10)
-        
-        self.get_logger().info('Nó OdomToTF 2D pronto e sincronizado.')
+        super().__init__("odom_to_tf")
 
-    def handle_odom(self, msg):
+        self._br = TransformBroadcaster(self)
+        self._offset_ns = None
+
+        qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10,
+        )
+
+        self._sub = self.create_subscription(
+            Odometry, "/dog_odom", self._cb, qos
+        )
+        self.get_logger().info(
+            "odom_to_tf: waiting for first message to measure clock offset..."
+        )
+
+    def _stamp_to_ns(self, stamp) -> int:
+        return stamp.sec * 10**9 + stamp.nanosec
+
+    def _ns_to_stamp(self, ns: int) -> Time:
+        t = Time()
+        t.sec = ns // 10**9
+        t.nanosec = ns % 10**9
+        return t
+
+    def _cb(self, msg: Odometry):
+        now_ns = self.get_clock().now().nanoseconds
+        msg_ns = self._stamp_to_ns(msg.header.stamp)
+
+        # Measure the clock offset once on the first message
+        if self._offset_ns is None:
+            self._offset_ns = now_ns - msg_ns
+            self.get_logger().info(
+                f"odom_to_tf: clock offset measured = {self._offset_ns / 1e9:.3f}s"
+            )
+
+        # Apply offset while preserving the delta between consecutive messages
+        corrected_ns = msg_ns + self._offset_ns
+
         t = TransformStamped()
-        
-        # Sincronização: Usa o tempo EXATO da mensagem da bag
-        t.header.stamp = self.get_clock().now().to_msg()
-        t.header.frame_id = 'odom'
-        t.child_frame_id = 'robot_center'
+        t.header.stamp    = self._ns_to_stamp(corrected_ns)
+        t.header.frame_id = "odom"
+        t.child_frame_id  = "base_link"
 
-        # Translação Planar
         t.transform.translation.x = msg.pose.pose.position.x
         t.transform.translation.y = msg.pose.pose.position.y
-        t.transform.translation.z = 0.0 
+        t.transform.translation.z = msg.pose.pose.position.z
+        t.transform.rotation      = msg.pose.pose.orientation
 
-        # Cálculo do Yaw (Z) está correto
-        q = msg.pose.pose.orientation
-        siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
-        cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
-        yaw = math.atan2(siny_cosp, cosy_cosp)
+        self._br.sendTransform(t)
 
-        # Rotação Planar (sem Roll e Pitch)
-        t.transform.rotation.x = 0.0
-        t.transform.rotation.y = 0.0
-        t.transform.rotation.z = math.sin(yaw / 2.0)
-        t.transform.rotation.w = math.cos(yaw / 2.0)
 
-        self.br.sendTransform(t)
-
-def main():
-    rclpy.init()
-    node = OdomToTF2D()
+def main(args=None):
+    rclpy.init(args=args)
+    node = OdomToTf()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
-    rclpy.shutdown()
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
