@@ -4,4 +4,4 @@ docker run -d \
   --ipc=host \
   -e ROS_DOMAIN_ID=0 \
   g1_slam:humble \
-  bash -c "source /opt/ros/humble/setup.bash && source /opt/ws/install/setup.bash && ros2 launch g1_slam slam.launch.py"
+  bash -c "source /opt/ros/humble/setup.sh && source /opt/ws/install/setup.bash && ros2 launch g1_slam slam.launch.py"
