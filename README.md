@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://youtu.be/rjEew96Fs70">
-    <img src="assets/thumbnail.png" alt="G1 SLAM Demo" width="100%">
+    <img src="assets/g1-slam.gif" alt="G1 SLAM Demo" width="100%">
   </a>
 </p>
 
