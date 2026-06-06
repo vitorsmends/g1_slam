@@ -1,160 +1,276 @@
 # g1_slam
 
-ROS 2 package providing a minimal SLAM bringup pipeline for the Unitree G1 robot.  
-The package currently contains a single custom node for TF and topic remapping, and a launch file that composes the SLAM pipeline using external packages.
+<p align="center">
+  <video src="assets/g1-slam.mp4" controls width="100%"></video>
+</p>
 
-The scope of this repository is intentionally minimal and focused on:
-- Correcting TF (odom → base_link) for the G1
-- Remapping odometry and LaserScan topics
-- Integrating LiDAR projection to 2D and SLAM Toolbox for online mapping
+> SLAM, localization and navigation for the Unitree G1 humanoid robot using ROS 2, Livox Mid360, SLAM Toolbox and Nav2.
+
+![ROS2 Humble](https://img.shields.io/badge/ROS2-Humble-blue)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-orange)
+![Nav2](https://img.shields.io/badge/Nav2-Supported-success)
+![SLAM Toolbox](https://img.shields.io/badge/SLAM-Toolbox-success)
+
+The package provides a lightweight navigation stack tailored for the Unitree G1, including:
+
+- PointCloud2 → LaserScan conversion
+- Timestamp synchronization for odometry and LiDAR streams
+- TF generation (`odom → base_link`)
+- SLAM Toolbox mapping
+- SLAM Toolbox localization
+- Nav2 integration
+- RViz visualization
 
 ---
 
-## Requirements
+## 1. Overview
 
-- ROS 2 Humble
-- slam_toolbox
-- pointcloud_to_laserscan
-- tf2_ros
-- RViz2
+### 1.1 Architecture
 
-Install dependencies via rosdep:
+```text
+Livox PointCloud2
+        │
+        ▼
+restamp_cloud
+        │
+        ▼
+pointcloud_to_laserscan
+        │
+        ▼
+/scan
+        │
+        ▼
+slam_toolbox
+        │
+        ▼
+map
+```
 
-```bash
-sudo rosdep init || true
-rosdep update
+```text
+/dog_odom
+      │
+      ▼
+restamp_odom
+      │
+      ▼
+odom_to_tf
+      │
+      ▼
+odom → base_link
+```
+
+```text
+slam_toolbox
+      │
+      ▼
+map → odom
+      │
+      ▼
+pose_publisher
+      │
+      ▼
+/inorbit/odom_pose
+      │
+      ▼
+Nav2
+```
+
+### 1.2 Package Structure
+
+```text
+g1_slam/
+├── config/
+│   ├── nav2_params.yaml
+│   ├── pc_to_laserscan.yaml
+│   ├── slam_toolbox.yaml
+│   └── slam_toolbox_localize.yaml
+├── launch/
+│   ├── nav.launch.py
+│   ├── rviz.launch.py
+│   └── slam.launch.py
+├── g1_slam/
+│   ├── odom_to_tf.py
+│   ├── pose_publisher.py
+│   ├── restamp_cloud.py
+│   └── restamp_odom.py
+├── Dockerfile
+├── build.sh
+└── run.sh
 ```
 
 ---
 
-## Workspace Setup
+## 2. Installation
 
-Create a ROS 2 workspace and add this package:
+### 2.1 Docker (Recommended)
+
+Build the image:
 
 ```bash
-mkdir -p ~/g1_ws/src
-cd ~/g1_ws/src
+./build.sh
+```
+
+Run the container:
+
+```bash
+./run.sh
+```
+
+Open a shell inside the running container:
+
+```bash
+docker exec -it g1_slam bash
+```
+
+### 2.2 Native Installation
+
+```bash
+mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
+
 git clone <REPOSITORY_URL>/g1_slam.git
+
 cd ..
+
 rosdep install --from-paths src --ignore-src -r -y
-colcon build
+
+colcon build --packages-select g1_slam --symlink-install
+
 source install/setup.bash
 ```
 
 ---
 
-## Launch
+## 3. Operation
 
-This repository provides a single launch file that brings up the full online SLAM pipeline.
+### 3.1 Mapping
 
-### Pipeline
-
-1. LiDAR PointCloud → LaserScan  
-   The LiDAR point cloud is projected into a 2D LaserScan using `pointcloud_to_laserscan`.
-
-2. TF and topic remapping (custom node)  
-   The `g1_slam/remap` node:
-   - Subscribes to kinematic odometry (`/dog_odom`)
-   - Publishes corrected odometry
-   - Republishes LaserScan on a fixed topic
-   - Publishes TF odom → base_link using the kinematic odometry
-
-3. Static TF (base_link → lidar_link)  
-   A static transform publisher provides the LiDAR extrinsics.
-
-4. Online SLAM (slam_toolbox)  
-   `slam_toolbox` runs in async mapping mode using the corrected LaserScan and TF chain.
-
-### Run
+Build a new map from scratch.
 
 ```bash
 ros2 launch g1_slam slam.launch.py
 ```
 
----
+### 3.2 Localization
 
-## Configuration
-
-All parameters used by the pipeline are provided via YAML configuration files:
-
-- `config/pointcloud_to_laserscan.yaml`  
-  Parameters for LiDAR point cloud projection to LaserScan.
-
-- `config/remap.yaml`  
-  Parameters for the custom remap node:
-  - input odometry topic
-  - input scan topic
-  - output odometry topic
-  - output scan topic
-  - frame names
-  - TF publishing behavior
-
-- `config/mapper_params_online_async.yaml`  
-  Official SLAM Toolbox configuration used for online mapping.
-
-No other launch files or configuration files are part of this repository.
-
----
-
-## Topics and Frames
-
-### Topics
-
-| Type   | Topic           | Description                                |
-|--------|------------------|--------------------------------------------|
-| Input  | /livox/lidar     | LiDAR point cloud                          |
-| Input  | /dog_odom        | Kinematic odometry from the robot          |
-| Output | /scan            | Raw LaserScan from pointcloud_to_laserscan |
-| Output | /scan_fixed      | Remapped LaserScan used by SLAM            |
-| Output | /dog_odom_fixed  | Corrected odometry used for TF             |
-| Output | /map             | Occupancy grid map from slam_toolbox       |
-
-### TF Tree
-
-The expected TF chain during operation is:
-
-```
-map → odom → base_link → lidar_link
-```
-
----
-
-## Visualization
+Load an existing map and estimate the robot pose without modifying it.
 
 ```bash
-rviz2
+ros2 launch g1_slam slam.launch.py \
+  slam_config:=<path_to>/slam_toolbox_localize.yaml
 ```
 
-Recommended displays:
-- TF
-- Map
-- LaserScan (/scan_fixed)
-- Robot model (base_link)
+### 3.3 Navigation
+
+Start the Nav2 stack.
+
+```bash
+ros2 launch g1_slam nav.launch.py
+```
+
+Features:
+
+- Global path planning
+- Local obstacle avoidance
+- Goal-based navigation
+- Velocity smoothing
+- Costmap generation from LiDAR data
+
+### 3.4 RViz
+
+```bash
+ros2 launch g1_slam rviz.launch.py
+```
 
 ---
 
-## Verification
+## 4. Maps
+
+### 4.1 Save Occupancy Map
+
+```bash
+ros2 run nav2_map_server map_saver_cli \
+-f ~/maps/map
+```
+
+### 4.2 Save Posegraph
+
+```bash
+ros2 service call /slam_toolbox/serialize_map \
+slam_toolbox/srv/SerializePoseGraph \
+"{filename: '/home/unitree/maps/map_robotspace'}"
+```
+
+---
+
+## 5. Interfaces
+
+### 5.1 Topics
+
+| Direction | Topic | Description |
+|------------|--------|-------------|
+| Input | `/livox/lidar` | Raw Livox point cloud |
+| Input | `/dog_odom` | Robot odometry |
+| Output | `/scan` | 2D LaserScan |
+| Output | `/map` | Occupancy map |
+| Output | `/inorbit/odom_pose` | Robot pose in map frame |
+| Output | `/cmd_vel` | Navigation commands |
+
+### 5.2 TF Tree
+
+```text
+map
+ └── odom
+      └── base_link
+           └── ...
+                └── livox_frame
+```
+
+---
+
+## 6. Verification
 
 ```bash
 ros2 node list
-ros2 topic list
-ros2 node info /slam_toolbox
-ros2 topic echo /scan_fixed
-ros2 topic echo /map
+
+ros2 topic hz /scan
+
+ros2 topic hz /map
+
+ros2 topic hz /inorbit/odom_pose
+
+ros2 run tf2_ros tf2_echo odom base_link
+
+ros2 run tf2_ros tf2_echo map odom
 ```
 
 ---
 
-## Known Limitations
+## 7. Notes
 
-- Localization on a prebuilt map is not provided in this repository.
-- Sensor fusion (EKF) is intentionally not part of this package.
-- Navigation and path planning are out of scope.
-- The static TF between base_link and lidar_link must be manually calibrated.
+### 7.1 Custom Nodes
+
+**restamp_odom.py**  
+Synchronizes odometry timestamps with the ROS clock.
+
+**restamp_cloud.py**  
+Synchronizes Livox point clouds before SLAM processing.
+
+**odom_to_tf.py**  
+Publishes the `odom → base_link` transform from robot odometry.
+
+**pose_publisher.py**  
+Publishes the robot pose in the map frame as a standard `Odometry` message.
+
+### 7.2 Known Limitations
+
+- Sensor fusion is not included.
+- Map quality depends on odometry quality.
+- Localization mode requires a previously serialized posegraph.
+- LiDAR extrinsics must be correctly configured on the robot.
 
 ---
 
 ## Status
 
-Active development.  
-The current implementation is focused on stabilizing TF and SLAM integration on the Unitree G1 for 2D navigation use cases.
+Active development.
