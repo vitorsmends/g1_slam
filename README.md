@@ -1,10 +1,22 @@
 # g1_slam
 
 <p align="center">
-  <video src="assets/g1-slam.mp4" controls width="100%"></video>
+  <a href="https://youtu.be/rjEew96Fs70">
+    <img src="assets/thumbnail.png" alt="G1 SLAM Demo" width="100%">
+  </a>
 </p>
 
-> SLAM, localization and navigation for the Unitree G1 humanoid robot using ROS 2, Livox Mid360, SLAM Toolbox and Nav2.
+<p align="center">
+  <strong>SLAM, Localization and Navigation for the Unitree G1 Humanoid Robot</strong>
+</p>
+
+<p align="center">
+  ROS 2 Humble • Livox Mid360 • SLAM Toolbox • Nav2
+</p>
+
+<p align="center">
+  <a href="https://youtu.be/rjEew96Fs70">🎥 Watch Demo Video</a>
+</p>
 
 ![ROS2 Humble](https://img.shields.io/badge/ROS2-Humble-blue)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-orange)
